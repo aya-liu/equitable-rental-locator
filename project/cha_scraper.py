@@ -18,6 +18,23 @@ ROOT_URL = "http://chicagoha.gosection8.com"
 
 
 def scrape(url):
+    '''
+    Scrape all rental listings starting from url all the way to the last page
+    of the HCV housing locator.
+    
+    Input: url (str): the starting url
+    Returns: hd (dict): rental listing dictionary, mapping listing id to the 
+                    following attributes:
+                - address
+                - monthly rent
+                - number of bed and baths
+                - property type (house / apt)
+                - whether voucher is necessary
+                - availability
+                - contact info
+                - URL for the listing
+    '''
+
     hd = {}
     soup = url_to_soup(url)
     print("scraping...")
@@ -30,7 +47,7 @@ def scrape(url):
     else:
         hd_next = scrape(next_url)
         hd.update(hd_next)
-    print("finished")
+
     return hd
 
 
@@ -49,15 +66,7 @@ def parse_listings(soup, hd, debug=False):
 
     Inputs: 
         soup (BeautifulSoup): a BeautifulSoup object from one page
-        hd (dict): rental listing dictionary, mapping listing id to the 
-                    following attributes:
-                - address
-                - monthly rent
-                - number of bed and baths
-                - property type (house / apt)
-                - whether voucher is necessary
-                - Contact info
-                - URL for the listing
+        hd (dict): rental listing dictionary
     '''
     listings = soup.find_all("div", class_=re.compile("(listing)+[0-9]+"))
 
@@ -140,12 +149,12 @@ def url_to_soup(url):
     '''
     request = util.get_request(url)
     if not request:
-        print("Cannot get request")
+        print("Error - Cannot get request")
         return None
     else:
         html = util.read_request(request)
     if not html:
-        print("Cannot read request")
+        print("Error - Cannot read request")
         return None
     else:
         return bs4.BeautifulSoup(html, features="html5lib")
