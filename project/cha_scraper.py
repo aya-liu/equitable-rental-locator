@@ -4,19 +4,16 @@ CHA Find HCV Housing Listing Scraper
 Aya Liu 
 '''
 
-import queue
-import csv
+import sys
 import bs4
 import re
 import util
-import pandas as pd
-
+import pickle
 
 START_URL = "http://chicagoha.gosection8.com/Tenant/tn_Results.aspx"
 TEST_URL = "http://chicagoha.gosection8.com/Tenant/tn_Results.aspx?&pg=376"
 TEST_URL2  = "http://chicagoha.gosection8.com/Tenant/tn_Results.aspx?&pg=370"
 ROOT_URL = "http://chicagoha.gosection8.com"
-
 
 
 def scrape(url):
@@ -39,7 +36,7 @@ def scrape(url):
 
     hd = {}
     soup = url_to_soup(url)
-    print("scraping...")
+    print(url)
     parse_listings(soup, hd)
     add_geocode(soup, hd)
     
@@ -165,7 +162,7 @@ def url_to_soup(url):
 
 
 if __name__ == '__main__':
-    hd = scrape(TEST_URL)
-    with open(sys.argv[1],'w') as f:
-        f.write(str(hd))
+    hd = scrape(START_URL)
+    f = open(sys.argv[1],'wb')
+    pickle.dump(hd, f)
 
