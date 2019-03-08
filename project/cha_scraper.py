@@ -9,12 +9,14 @@ import csv
 import bs4
 import re
 import util
+import pandas as pd
 
 
 START_URL = "http://chicagoha.gosection8.com/Tenant/tn_Results.aspx"
 TEST_URL = "http://chicagoha.gosection8.com/Tenant/tn_Results.aspx?&pg=376"
 TEST_URL2  = "http://chicagoha.gosection8.com/Tenant/tn_Results.aspx?&pg=370"
 ROOT_URL = "http://chicagoha.gosection8.com"
+
 
 
 def scrape(url):
@@ -31,7 +33,7 @@ def scrape(url):
                 - property type (house / apt)
                 - whether voucher is necessary
                 - availability
-                - contact info
+                - contact inf
                 - URL for the listing
     '''
 
@@ -47,7 +49,6 @@ def scrape(url):
     else:
         hd_next = scrape(next_url)
         hd.update(hd_next)
-
     return hd
 
 
@@ -80,9 +81,12 @@ def parse_listings(soup, hd, debug=False):
 
         # get property info
         bed_tag = l.find_all("span", id=re.compile("Main.*Bed_+[0-9]*"))[0]
-        num_bed = bed_tag.text	
+        if bed_tag.text == "Efficiency":
+            num_bed = 0
+        else:
+            num_bed = float(bed_tag.text)
         bath_tag = bed_tag.next_sibling
-        num_bath = bath_tag.split()[1]
+        num_bath = float(bath_tag.split()[1])
         ptype_tag = bath_tag.next_sibling
         ptype = ptype_tag.text
         
@@ -159,4 +163,9 @@ def url_to_soup(url):
     else:
         return bs4.BeautifulSoup(html, features="html5lib")
 
+
+if __name__ == '__main__':
+    hd = scrape(TEST_URL)
+    with open(sys.argv[1],'w') as f:
+        f.write(str(hd))
 
