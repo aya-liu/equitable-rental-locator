@@ -6,7 +6,7 @@ def cook_county_evictions():
 	'''
 	This function returns a dataframe with evictions for Cook County, IL.
 	'''
-	il_df = read_and_process_evictions("block-groups.csv")
+	il_df = read_and_process_evictions("data/block-groups.csv")
 	cook_county_df = block_groups_filter(il_df, ['Cook County, Illinois'])
 
 	return cook_county_df 
@@ -26,7 +26,7 @@ def read_and_process_evictions(csv_file):
 	col_types = {
 	'GEOID': str,
 	'year': str,
-	'name': float,
+	'name': str,
 	'parent-location': str,
 	'population': float,
 	'poverty-rate': float,
@@ -54,7 +54,7 @@ def read_and_process_evictions(csv_file):
 	}
 
 	if os.path.exists(csv_file):
-		blockgroups_df = pd.read_csv(csv_file, dtypes=col_types)
+		blockgroups_df = pd.read_csv(csv_file, dtype=col_types)
 
 	return blockgroups_df
 
