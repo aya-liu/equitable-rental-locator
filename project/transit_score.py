@@ -2,6 +2,8 @@ import pandas as pd
 import re
 import pickle
 import numpy as np
+from math import radians, cos, sin, asin, sqrt, ceil
+import vincenty
 '''
 
 This program takes a gps coordinate and applies a score to 
@@ -107,7 +109,7 @@ def cartesian_product(*arrays):
     return df
 
 
-def calc_dist_between(apartments, l_stations):
+def create_cross_join(apartments, l_stations):
     cross_product_ind = cartesian_product(apartments.index, l_stations["STOP_ID"])
 
     l_stations_fil = l_stations.filter(["STOP_ID", "Lat", "Long"], axis=1)
@@ -119,6 +121,8 @@ def calc_dist_between(apartments, l_stations):
 
     merged = merged.merge(l_stations_fil, how="outer", on="STOP_ID")
     merged = merged.rename(index=float, columns={"Lat": "Lat_stop", "Long": "Long_stop"})
+    merged.Lat_stop = merged.Lat_stop.astype(float)
+    merged.Long_stop = merged.Long_stop.astype(float)
 
     return merged
     # #create numpy arrays from the l_stations and apartments
@@ -133,26 +137,36 @@ def calc_dist_between(apartments, l_stations):
 
 
     # return df
-
 def haversine(lon1, lat1, lon2, lat2):
     '''
-    Calculate the circle distance between two points
-    on the earth (specified in decimal degrees)
-
-    #function provided by CS122 instructors as part of pa5
+    Because there are so many row, I am avoiding the apply function
+    that takes significantly more time than directly doing these calculations
     '''
-    # convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-
-    # haversine formula
+    #convert lat and long to radians
+    # gps = [df_lon1, df_lat1, df_lon2, df_lat2]
+    # for row in gps:
+        
+    #     print(row.dtype)
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
     dlon = lon2 - lon1
     dlat = lat2 - lat1
-    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-    c = 2 * asin(sqrt(a))
+
+    a = np.sin(dlat/ 2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/ 2)**2
+    c = 2 * np.arcsin(np.sqrt(a))
 
     # 6367 km is the radius of the Earth
     km = 6367 * c
-    m = km * 1000
+    mi = 0.621371 *km
 
-    return m
+    return mi
 
+
+def go(apartments, l_stations):
+    '''
+    put it all together
+    '''
+    df = create_cross_join(apartments, l_stations)
+    df['distance'] = haversine(
+                    df["Long_apt"], df["Lat_apt"], df["Long_stop"], df["Lat_stop"])
+
+    return df
