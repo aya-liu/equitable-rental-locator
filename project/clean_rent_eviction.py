@@ -1,14 +1,10 @@
 import os
-import requests
-import bs4
 import pandas as pd
 
+ZILLOW_FILE = "data/Neighborhood_Zri_AllHomesPlusMultifamily.csv"
+EVICTIONS_FILE = "data/block-groups.csv"
 
-
-zillow_file = "data/Neighborhood_Zri_AllHomesPlusMultifamily.csv"
-evictions_file = "data/block-groups.csv"
-
-def read_and_process_rindex(zillow_file):
+def read_and_process_rindex(csv_file):
     '''
     Reads in the zillow rental indices at the neighborhood level
 
@@ -33,18 +29,22 @@ def read_and_process_rindex(zillow_file):
     '2017-01': int,
     '2018-01': int,
     '2019-01': int}
-
     cols_to_use = list(col_types)
 
-    if os.path.exists:
-        neighborhood_rent_df = pd.read_csv(csv_file, usecols = cols_to_use, dtypes=cols_to_use)
-        neighborhood_rent_df['2011-2015'] = (neighborhood_rent_df['2015-01'] - neighborhood_rent_df['2011-01']) / neighborhood_rent_df['2011-01']
-        neighborhood_rent_df['2015-2019'] = (neighborhood_rent_df['2019-01'] - neighborhood_rent_df['2015-01']) / neighborhood_rent_df['2015-01']
+    if os.path.exists(csv_file):
+        neighborhood_rent_df = pd.read_csv(csv_file, usecols = cols_to_use, 
+                                            dtype=col_types)
+        neighborhood_rent_df['2011-2015'] = (
+            neighborhood_rent_df['2015-01'] - neighborhood_rent_df['2011-01']
+            ) / neighborhood_rent_df['2011-01']
+        neighborhood_rent_df['2015-2019'] = (
+            neighborhood_rent_df['2019-01'] - neighborhood_rent_df['2015-01']
+            ) / neighborhood_rent_df['2015-01']
 
     return neighborhood_rent_df
 
 
-def read_and_process_evictions(evictions_file):
+def read_and_process_evictions(csv_file):
     '''
     This function takes the block groups data (for Illinois) 
     downloaded from the evictions database and creates a 
@@ -84,11 +84,10 @@ def read_and_process_evictions(evictions_file):
     'imputed': int,
     'subbed': int
     }
-
     if os.path.exists(csv_file):
         blockgroups_df = pd.read_csv(csv_file, dtype=col_types)
         filtered_df = df[df['parent-location'].isin(['Cook County, Illinois'])]
-
+        
     return filtered_df
 
 
