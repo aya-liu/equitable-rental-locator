@@ -6,10 +6,17 @@ import pandas as pd
 
 
 zillow_file = "data/Neighborhood_Zri_AllHomesPlusMultifamily.csv"
-evictions_file = "data/"
+evictions_file = "data/block-groups.csv"
 
 def read_and_process_rindex(zillow_file):
+    '''
+    Reads in the zillow rental indices at the neighborhood level
 
+    Inputs:
+        -zillow_file: csv file path
+    Returns:
+        -neighborhood_rent_df: pandas dataframe of rental data at neighborhood level
+    '''
     col_types = {
     'RegionID': str,
     'City': str,
@@ -29,31 +36,22 @@ def read_and_process_rindex(zillow_file):
 
     cols_to_use = list(col_types)
 
-    neighborhood_rent_df = pd.read_csv(csv_file, usecols = cols_to_use, dtypes=cols_to_use)
-    neighborhood_rent_df['2011-2015'] = (neighborhood_rent_df['2015-01'] - neighborhood_rent_df['2011-01']) / neighborhood_rent_df['2011-01']
-    neighborhood_rent_df['2015-2019'] = (neighborhood_rent_df['2019-01'] - neighborhood_rent_df['2015-01']) / neighborhood_rent_df['2015-01']
+    if os.path.exists:
+        neighborhood_rent_df = pd.read_csv(csv_file, usecols = cols_to_use, dtypes=cols_to_use)
+        neighborhood_rent_df['2011-2015'] = (neighborhood_rent_df['2015-01'] - neighborhood_rent_df['2011-01']) / neighborhood_rent_df['2011-01']
+        neighborhood_rent_df['2015-2019'] = (neighborhood_rent_df['2019-01'] - neighborhood_rent_df['2015-01']) / neighborhood_rent_df['2015-01']
 
     return neighborhood_rent_df
 
 
-def cook_county_evictions():
-    '''
-    This function returns a dataframe with evictions for Cook County, IL.
-    '''
-    il_df = read_and_process_evictions("data/block-groups.csv")
-    cook_county_df = block_groups_filter(il_df, ['Cook County, Illinois'])
-
-    return cook_county_df 
-
-
-def read_and_process_evictions(csv_file):
+def read_and_process_evictions(evictions_file):
     '''
     This function takes the block groups data (for Illinois) 
     downloaded from the evictions database and creates a 
     pandas dataframe. 
 
     Inputs:
-        - csv_file: csv file path
+        - evictions_file: csv file path
     Returns:
         - blockgroups_df: pandas dataframe of blockgroups
     '''
@@ -89,24 +87,9 @@ def read_and_process_evictions(csv_file):
 
     if os.path.exists(csv_file):
         blockgroups_df = pd.read_csv(csv_file, dtype=col_types)
-
-    return blockgroups_df
-
-    #fill NAs? NAs in gross rent and rent burdens
-
-def block_groups_filter(df, counties):
-    '''
-    This function takes a pandas df of evictions in the state of IL
-    and filters out counties of interest
-
-    Inputs:
-        -df: pandas dataframe of IL evictions
-        -counties: list of counties to filter by
-    '''
-    filtered_df = df[df['parent-location'].isin(counties)]
+        filtered_df = df[df['parent-location'].isin(['Cook County, Illinois'])]
 
     return filtered_df
-
 
 
 
