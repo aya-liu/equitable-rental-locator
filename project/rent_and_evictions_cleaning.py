@@ -24,20 +24,20 @@ def read_and_process_rindex(zillow_file):
     'State': str,
     'Metro': str,
     'CountyName': str,
-    '2011-01': int,
-    '2012-01': int, 
-    '2013-01': int,
-    '2014-01': int,
-    '2015-01': int,
-    '2016-01': int,
-    '2017-01': int,
-    '2018-01': int,
-    '2019-01': int}
+    '2011-01': 'Int64',
+    '2012-01': 'Int64', 
+    '2013-01': 'Int64',
+    '2014-01': 'Int64',
+    '2015-01': 'Int64',
+    '2016-01': 'Int64',
+    '2017-01': 'Int64',
+    '2018-01': 'Int64',
+    '2019-01': 'Int64'}
 
     cols_to_use = list(col_types)
 
     if os.path.exists:
-        neighborhood_rent_df = pd.read_csv(csv_file, usecols = cols_to_use, dtypes=cols_to_use)
+        neighborhood_rent_df = pd.read_csv(zillow_file, usecols= cols_to_use, dtype=col_types)
         neighborhood_rent_df['2011-2015'] = (neighborhood_rent_df['2015-01'] - neighborhood_rent_df['2011-01']) / neighborhood_rent_df['2011-01']
         neighborhood_rent_df['2015-2019'] = (neighborhood_rent_df['2019-01'] - neighborhood_rent_df['2015-01']) / neighborhood_rent_df['2015-01']
 
@@ -86,7 +86,7 @@ def read_and_process_evictions(evictions_file):
     }
 
     if os.path.exists(csv_file):
-        blockgroups_df = pd.read_csv(csv_file, dtype=col_types)
+        df = pd.read_csv(csv_file, dtype=col_types)
         filtered_df = df[df['parent-location'].isin(['Cook County, Illinois'])]
 
     return filtered_df
