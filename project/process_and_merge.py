@@ -72,12 +72,12 @@ def add_zillow_regionid_to_cha(gcha, zillow_filename):
         gcha: (GeoDataFrame) CHA geodataframe with coordinates
         blocks_filename: (str) filename of the block group geojson
     Returns: (GeoDataFrame) CHA geodataframe with block group GEOIDs
-
     '''
     zillow_neighborhoods = geopandas.read_file(zillow_filename)
     cha_geoid_zillow = geopandas.sjoin(gcha, zillow_neighborhoods, 
                                         how="left", op='intersects')
     return cha_geoid_zillow
+
 
 def go():
     '''
@@ -90,5 +90,4 @@ def go():
     cha_geoid_zillow = add_zillow_regionid_to_cha(cha_with_geoid, 
                                                     ZILLOW_SHP_FILE)
     return cha_geoid_zillow
-
 
