@@ -70,14 +70,38 @@ def add_zillow_regionid_to_cha(gcha, zillow_filename):
 
     Input:
         gcha: (GeoDataFrame) CHA geodataframe with coordinates
-        blocks_filename: (str) filename of the block group geojson
+        zillow_filename: (str) filename of the zillow region shapefile  
     Returns: (GeoDataFrame) CHA geodataframe with block group GEOIDs
     '''
     zillow_neighborhoods = geopandas.read_file(zillow_filename)
     cha_geoid_zillow = geopandas.sjoin(gcha, zillow_neighborhoods, 
                                         how="left", op='intersects')
+    cha_geoid_zillow = fill_zillow_na(cha_geoid_zillow)
+    cha_geoid_zillow.drop('index_right', axis=1, inplace=True)
     return cha_geoid_zillow
 
+
+def fill_zillow_na(cha_geoid_zillow):
+    '''
+    '''
+    # drop rows with false addresses
+    cha_geoid_zillow.drop(index = ['4763759','4796475'], inplace=True)
+    # fill invariant NA values
+    cha_geoid_zillow.fillna({"State": "IL", "County": "Cook", 
+        "City": "Chicago"}, inplace=True)
+    # manually look up Zillow Regions on zillow.com  
+    unmatches = cha_geoid_zillow[cha_geoid_zillow["index_right"].isna()]
+    values = {'4567448': ['Gresham', '269571'],
+         '4590237': ['Gresham', '269571'],
+         '4618006': ['Cabrini Green', '403302'],
+         '4632177': ['Park Manor', '403356'],
+         '4640435': ['Marquette Park', '403148'],
+         '4646604': ['Rogers Park', '269605'],
+         '4729058': ['Morgan Park', '269595'],
+         '4729219': ['West Town', '269615']}
+    for i in unmatches.index:
+        cha_geoid_zillow.loc[i, ["Name", "RegionID"]] = values[i]        
+    return cha_geoid_zillow
 
 def go():
     '''
@@ -90,4 +114,3 @@ def go():
     cha_geoid_zillow = add_zillow_regionid_to_cha(cha_with_geoid, 
                                                     ZILLOW_SHP_FILE)
     return cha_geoid_zillow
-
