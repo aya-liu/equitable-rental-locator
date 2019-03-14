@@ -4,12 +4,37 @@ import pickle
 import numpy as np
 from math import radians, cos, sin, asin, sqrt, ceil
 import vincenty
+# import process_and_merge
 '''
 
 This program takes a gps coordinate and applies a score to 
 that location based on how many bus stops and L stations are 
 within a certain vicinity of the locaton.
 '''
+def load_and_clean_cha(CHA_filename):
+    '''
+    Load and clean CHA data.
+    Input:
+        (str) file name of the raw CHA housing unit data
+    Returns:
+        (DataFrame) clean CHA data
+    '''
+    # load raw CHA data
+    with open(CHA_filename, "rb") as f:       
+        d = pickle.load(f)
+    cha = pd.DataFrame.from_dict(data = d, orient = "index")
+    
+    # clean CHA data
+    cols = ['Address','Monthly Rent','Property Type','Bath','Bed',
+        'Voucher Necessary','Availability','Contact','URL','Lat','Long']
+    cha = cha[cols]
+    cha.Long = -1 * cha.Long
+
+    # correct an one-off location error
+    cha.loc["4545145", "Long"] = -87.66593 
+    cha.loc["4545145", "Lat"] = 41.772175
+    return cha
+
 
 def transit_score(orig_lat, orig_lon, apartments_dataset, L_stations, bus_stations):
     '''
@@ -54,7 +79,6 @@ def clean_bus_stations(bus_stations_csv):
     df = pd.read_csv(bus_stations_csv)
     df = df.rename(index=float, columns={"POINT_Y": "Lat", "POINT_X": "Long"})
 
-
     return df
 
 def merge_apartments_data(apartments_dataset, other_set):
@@ -67,22 +91,6 @@ def merge_apartments_data(apartments_dataset, other_set):
     each location
     '''
     pass
-
-
-def open_CHA_data(filename_obj):
-
-    with open(filename_obj, "rb") as f:       
-        d = pickle.load(f)
-
-        cha = pd.DataFrame.from_dict(data = d, orient = "index")
-
-        cols = ['Address','Monthly Rent','Property Type','Bath','Bed',
-            'Voucher Necessary','Availability','Contact','URL','Lat','Long']
-
-        cha = cha[cols]
-        cha["Long"] = cha["Long"]*-1
-
-        return cha
 
 
 def cartesian_product(*arrays):
@@ -160,6 +168,38 @@ def haversine(lon1, lat1, lon2, lat2):
 
     return mi
 
+def assign_transit_score(df):
+    '''
+    Takes dataframe and assigns transit scores
+
+    Amenities within a 5 minute walk (.25 miles) are given
+    maximum points. A decay function is used to give points
+    to more distant amenities, with no points given after
+    a 30 minute walk.
+    '''
+    #only keep bus stops that are within .5 miles of apartments
+    # sub[]
+    # quart = np.where(sub['distance'] <= .25, 1, 0)
+    # sub['wi_quart_mi'] = 0
+    # sub['wi_half_mi'] = 0
+
+    # sub.loc[sub['distance'] <= .5, 'wi_half_mi'] = 1
+    # sub.loc[sub['distance'] <= .25, 'wi_quart_mi'] = 1
+
+    # sub
+    # sub.loc
+
+    # df.loc[df['used'] == 1.0, 'alert'] = 'Full'
+    df['wi_half_1_mi'] = np.where(df['distance'] <= 1, 1, 0)    
+    df['wi_half_3_quart'] = np.where(df['distance'] <= .75, 1, 0)
+    df['wi_half_mi'] = np.where(df['distance'] <= .5, 1, 0)
+    df['wi_quart_mi'] = np.where(df['distance'] <= .25, 1, 0)
+
+    sub_agg = df.groupby('apt_ind', as_index=False)[['wi_quart_mi', 'wi_half_mi', 'wi_half_3_quart', 'wi_half_1_mi']].sum()
+
+    # df['profitable'] = np.where(df['price']>=15.00, True, False)
+    return sub_agg
+
 
 def go(apartments, l_stations):
     '''
@@ -169,4 +209,6 @@ def go(apartments, l_stations):
     df['distance'] = haversine(
                     df["Long_apt"], df["Lat_apt"], df["Long_stop"], df["Lat_stop"])
 
-    return df
+    grouped = assign_transit_score(df)
+
+    return grouped
