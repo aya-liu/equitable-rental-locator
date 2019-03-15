@@ -249,6 +249,14 @@ def go(apartments,
        manual_checked_bad_landlord_filepath=None
        ):
     '''
+    default filenames to use:
+    go(apt,
+       "data/CTA_L_stops_locations.csv",
+       "processed_data/apt_l_stops_landlord.csv", 
+       "data/problem_landlords.csv", 
+       "data/manual_check_bad_landlords.csv", 
+       "data/manual_check_bad_landlords_done.csv")
+
     Inputs: 
         - apartments (pandas dataframe that has been create and cleaned in
                         process_and_merge.py 
@@ -271,6 +279,9 @@ def go(apartments,
             Note: We have done this, but a programmer does not have to do this
             step. If they do not, then the bad_landlord column will not be 
             included in the final ouput.
+
+        Outputs:
+            
     '''
     l_stations = clean_L_stations(l_stations_filepath)
     df = create_cross_join(apartments, l_stations, ("_apt", "_stop")) 
