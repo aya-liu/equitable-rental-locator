@@ -92,11 +92,12 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
 
     return merged        
 
-
+#updated to keep 'population', 'eviction-filings', 'evictions', 'renter-occupied-households'
 def merge_with_evict(cha, evict):
     evict_to_merge = evict[evict.year == '2016']
     evict_to_merge = evict_to_merge[["GEOID", "eviction-rate", 
-                    "eviction-filing-rate"]]
+                    "eviction-filing-rate", "population", "renter-occupied-households",
+                    "eviction-filings", "evictions", "renter-occupied-households"]]
     merged_with_ev = pd.merge(cha.reset_index(), evict_to_merge, on="GEOID", 
                             how="left")
     return merged_with_ev
