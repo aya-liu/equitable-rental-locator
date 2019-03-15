@@ -3,8 +3,9 @@ import pandas as pd
 
 ZILLOW_FILE = "data/Neighborhood_Zri_AllHomesPlusMultifamily.csv"
 EVICTIONS_FILE = "data/block-groups.csv"
+ZILLOW_WITH_INC = "processed_data/zillow_rindex_with_increase.csv"
 
-def read_and_process_rindex(csv_file):
+def read_and_process_rindex(csv_file, output_filename):
     '''
     Reads in the zillow rental indices at the neighborhood level
 
@@ -41,6 +42,8 @@ def read_and_process_rindex(csv_file):
         neighborhood_rent_df['2015-2019'] = (
             neighborhood_rent_df['2019-01'] - neighborhood_rent_df['2015-01']
             ) / neighborhood_rent_df['2015-01']
+
+    neighborhood_rent_df.to_csv(output_filename)
 
     return neighborhood_rent_df
 

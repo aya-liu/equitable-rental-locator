@@ -7,22 +7,25 @@ import matplotlib.pyplot as plt
 CHA_DICT_RAW = "data/CHA_rental_data.obj"
 BLOCKS_GEOFILE = "data/block-groups.geojson"
 ZILLOW_GEOFILE = "data/ZillowNeighborhoods-IL.shp"
+CHA_CLEAN = "processed_data/CHA_clean.csv"
+CHA_WITH_KEYS = "processed_data/CHA_with_merge_keys.csv"
 
-
-def process_cha_data(cha_dict_raw, blocks_filename, zillow_filename):
+def process_cha_data(cha_dict_raw, blocks_filename, zillow_filename,
+                output_filename_for_clean, output_filename_with_keys):
     '''
     process cha data to map each housing unit to geoid and 
     zillow regionid.
     '''
-    cha = load_and_clean_cha(cha_dict_raw)
+    cha = load_and_clean_cha(cha_dict_raw, output_filename_for_clean)
     gcha = convert_to_gdf(cha)
     cha_with_geoid = add_blocks_to_cha(gcha, blocks_filename)
     cha_geoid_zillow = add_zillow_regionid_to_cha(cha_with_geoid, 
                                                     zillow_filename)
+    cha_geoid_zillow.to_csv(output_filename_with_keys)
     return cha_geoid_zillow
 
 
-def load_and_clean_cha(CHA_filename):
+def load_and_clean_cha(CHA_filename, output_filename):
     '''
     Load and clean CHA data.
     Input:
@@ -44,6 +47,8 @@ def load_and_clean_cha(CHA_filename):
     # correct an one-off location error
     cha.loc["4545145", "Long"] = -87.66593 
     cha.loc["4545145", "Lat"] = 41.772175
+
+    cha.to_csv(output_filename)
     return cha
 
 
