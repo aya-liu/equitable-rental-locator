@@ -19,7 +19,7 @@ dist_to_col = {0.25: "num_stops_quart_mi",
 
 SAMPLE_OUTPUT = "output/sample_output_1.csv"
 
-def search(criteria, db, output_filepath):
+def search(criteria, output_filepath):
     '''
     Search for rental unit listings that satisfies specific
     criteria and stores results as a csv file.
@@ -32,7 +32,7 @@ def search(criteria, db, output_filepath):
         (DataFrame): listing search results
 
     '''
-    rv = db
+    rv = DB
     c = criteria.d
 
     if c["Address"]:
@@ -167,19 +167,26 @@ class Criteria:
                 "Neighborhood": None,
                 "Has L-Stop within _ Mile": None}
 
-    def update_criteria(self, field_to_value):
+    def set_criteria(self, field_to_value):
         '''
-        Update criteria with search field to value pairs.
+        Set criteria with search field to value pairs.
 
         Input:
             field_to_value: (dict) search fields to value 
         '''
         for f, v in field_to_value.items():
             if f in self.d:
+                
+
+
+
+
+
+
                 self.d[f] = v
             else:
                 raise ValueError("{} is not a valid field\n".format(f) +
-                    "Should be one of the following fields: " +  
+                    "Input one of the following fields: " +  
                     str(list(self.d)))
 
     def clear_criteria(self):

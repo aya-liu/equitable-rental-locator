@@ -12,7 +12,7 @@ import pandas as pd
 from process_cha_data import process_cha_data
 import rent_and_eviction as rev
 import transit_and_landlord as trl
-pd.options.display.max_rows = 999
+pd.options.display.max_columns = 999
 
 # data source filepaths
 CHA_DATA = "data/CHA_rental_data.obj"
@@ -93,8 +93,13 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
 
 def merge_with_evict(cha, evict):
     evict_to_merge = evict[evict.year == '2016']
-    evict_to_merge = evict_to_merge[["GEOID", "eviction-rate", 
-                    "eviction-filing-rate"]]
+    evict_to_merge = evict_to_merge[['GEOID', 'eviction-rate', 
+            'eviction-filing-rate', 'parent-location', 'population',
+            'renter-occupied-households', 'median-gross-rent',
+            'median-household-income', 'median-property-value', 'pct-white', 
+            'pct-af-am', 'pct-hispanic', 'pct-am-ind', 'pct-asian', 
+            'eviction-filings', 'evictions', 'eviction-rate',
+            'eviction-filing-rate']]
     merged_with_ev = pd.merge(cha.reset_index(), evict_to_merge, on="GEOID", 
                             how="left")
     return merged_with_ev

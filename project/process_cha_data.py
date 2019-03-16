@@ -39,7 +39,7 @@ def load_and_clean_cha(CHA_filename):
     
     # clean CHA data
     cols = ['Address','Monthly Rent','Property Type','Bath','Bed',
-        'Voucher Necessary','Availability','Contact','URL','Lat','Long']
+            'Availability','Contact','URL','Lat','Long']
     cha = cha[cols]
     cha.Long = -1 * cha.Long
 
@@ -74,8 +74,9 @@ def add_blocks_to_cha(gcha, blocks_filename):
     '''
     blocks = geopandas.read_file(blocks_filename).filter(
                                             ['geometry', 'GEOID'])
-    # set CRS for spatial join
-    gcha.crs = blocks.crs
+    blocks.crs = {'init': 'epsg:4326'}
+    gcha.crs = {'init': 'epsg:4326'}
+
     cha_with_geoid = geopandas.sjoin(gcha, blocks, how="left", 
                                                     op='intersects')
     cha_with_geoid.drop('index_right', axis=1, inplace=True)
@@ -92,9 +93,9 @@ def add_zillow_regionid_to_cha(gcha, zillow_filename):
     Returns: (GeoDataFrame) CHA geodataframe with block group GEOIDs
     '''
     zillow_neighborhoods = geopandas.read_file(zillow_filename)
+    zillow_neighborhoods.crs = {'init': 'epsg:4326'}
+    gcha.crs = {'init': 'epsg:4326'}
 
-    # set CRS for spatial join
-    gcha.crs = zillow_neighborhoods.crs
     cha_geoid_zillow = geopandas.sjoin(gcha, zillow_neighborhoods, 
                                         how="left", op='intersects')
     # drop unmatches and extra columns
