@@ -24,10 +24,8 @@ BLOCKS_GEOFILE = "data/block-groups.geojson"
 ZILLOW_GEOFILE = "data/ZillowNeighborhoods-IL.shp"
 
 # output data filepaths
-CHA_CLEAN = "processed_data/CHA_clean.csv"
-CHA_WITH_KEYS = "processed_data/CHA_with_merge_keys.csv"
 ZILLOW_WITH_INC = "processed_data/zillow_rindex_with_increase.csv"
-CHA_MERGED = "processed_data/locator_database.csv"
+DATABASE = "processed_data/locator_database.csv"
 
 # default threshold for landlord location fuzzy match
 DEF_TS = 0.015
@@ -35,8 +33,7 @@ DEF_TS = 0.015
 
 def build_database(cha_data, evictions_data, zillow_data, lstops_data,
             bad_landlords_data, blocks_geofile, zillow_geofile, 
-            cha_clean_output, cha_with_keys_output, zillow_with_inc_output, 
-            cha_merged_output, threshold=DEF_TS):
+            zillow_with_inc_output, database_output, threshold=DEF_TS):
     '''
     Merge all data sources and write the merged dataset to a csv file
 
@@ -51,12 +48,9 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
             - zillow_geofile: filename of the Zillow Regions shp file
 
         Filepaths to output csv files:
-            - cha_clean_output: output filename for clean CHA rental unit data
-            - cha_with_keys_output: output filename for CHA rental unit data with
-                                        merge keys (GEOID and Zillow RegionID)
             - zillow_with_inc_output: output filename for zillow data with 
                                         computed rent increase rate
-            - cha_merged_output: output filename for final merged dataset
+            - database_output: output filename for database created
 
     Returns: (GeoDataFrame) merged dataset mapping rental units to
         - 2016 eviction rate and eviction filing rate (block-group level)
@@ -65,34 +59,38 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
         - flags for problem landlords (unit level)
 
     '''
-
+    print("Processing housing data sources...")
     # process data of housing units, eviction rates, and rent index
-    cha = process_cha_data(cha_data, blocks_geofile, zillow_geofile,
-                            cha_clean_output, cha_with_keys_output)
+    cha = process_cha_data(cha_data, blocks_geofile, zillow_geofile)
     evict = rev.read_and_process_evictions(evictions_data)
     rindex = rev.read_and_process_rindex(zillow_data, 
                                             zillow_with_inc_output)
 
+    print("Flagging problem landlords...")
     # flag units with potential bad landlords
     cha_to_landlords = trl.flag_potential_bad_landlord(cha,
                             bad_landlords_data, threshold)
 
+    print("Computing transit access...")
     # compute transit access for each unit
     cha_to_transit = trl.compute_num_stations(cha, lstops_data)
 
+    print("Building the database...")
     # merge all processed data sources above
     merged = merge_with_evict(cha, evict)
     merged = merge_with_rindex(merged, rindex)
     merged = merge_on_index(merged, cha_to_landlords)
     merged = merge_on_index(merged, cha_to_transit)
 
+    print("Saving the database...")
     # format and write to csv
     format_db(merged)
-    merged.to_csv(cha_merged_output)
+    merged.to_csv(database_output)
 
+    print("--Finished--")
     return merged        
 
-#updated to keep 'population', 'eviction-filings', 'evictions', 'renter-occupied-households'
+
 def merge_with_evict(cha, evict):
     evict_to_merge = evict[evict.year == '2016']
     evict_to_merge = evict_to_merge[["GEOID", "eviction-rate", 
@@ -118,6 +116,7 @@ def merge_on_index(df, df_to_merge):
 def format_db(df):
     df.set_index("index", inplace=True)
     new_names = {
+    "Name": "Neighborhood",
     "eviction-rate": "2016_evict_rate",
     "eviction-filing-rate": "2016_evict_filing_rate",
     "2011-2015": "2011-2015_rent_perc_change",
@@ -133,7 +132,8 @@ def format_db(df):
 
 def main():
     '''
-    Build, format, and stores database
+    Build, format, and stores database as csv.
+    Returns nothing.
     '''
     db = build_database(
         CHA_DATA, 
@@ -143,10 +143,8 @@ def main():
         BAD_LL_DATA, 
         BLOCKS_GEOFILE, 
         ZILLOW_GEOFILE, 
-        CHA_CLEAN, 
-        CHA_WITH_KEYS, 
         ZILLOW_WITH_INC,
-        CHA_MERGED
+        DATABASE
         )
 
 

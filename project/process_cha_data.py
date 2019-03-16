@@ -1,3 +1,8 @@
+'''
+Clean rental unit data scraped from CHA website.
+Join units to Census block groups and Zillow neighborhoods on geocodes
+
+'''
 import pickle
 import pandas as pd
 import geopandas
@@ -5,24 +10,23 @@ from shapely.geometry import Point
 import matplotlib.pyplot as plt
 
 
-def process_cha_data(cha_dict_raw, blocks_filename, zillow_filename,
-                output_filename_for_clean, output_filename_with_keys):
+def process_cha_data(cha_dict_raw, blocks_filename, zillow_filename):
     '''
     process cha data to map each housing unit to geoid and 
     zillow regionid.
     '''
-    cha = load_and_clean_cha(cha_dict_raw, output_filename_for_clean)
+    cha = load_and_clean_cha(cha_dict_raw)
     gcha = convert_to_gdf(cha)
     cha_with_geoid = add_blocks_to_cha(gcha, blocks_filename)
     cha_geoid_zillow = add_zillow_regionid_to_cha(cha_with_geoid, 
                                                     zillow_filename)
-    cha_geoid_zillow.to_csv(output_filename_with_keys)
     return cha_geoid_zillow
 
 
-def load_and_clean_cha(CHA_filename, output_filename):
+def load_and_clean_cha(CHA_filename):
     '''
     Load and clean CHA data.
+    
     Input:
         (str) file name of the raw CHA housing unit data
     Returns:
@@ -43,7 +47,6 @@ def load_and_clean_cha(CHA_filename, output_filename):
     cha.loc["4545145", "Long"] = -87.66593 
     cha.loc["4545145", "Lat"] = 41.772175
 
-    cha.to_csv(output_filename)
     return cha
 
 
@@ -69,8 +72,10 @@ def add_blocks_to_cha(gcha, blocks_filename):
         blocks_filename: (str) filename of the block group geojson
     Returns: (GeoDataFrame) CHA geodataframe with block group GEOIDs
     '''
-    blocks_full = geopandas.read_file(blocks_filename)
-    blocks = blocks_full[['geometry', 'GEOID']]
+    blocks = geopandas.read_file(blocks_filename).filter(
+                                            ['geometry', 'GEOID'])
+    # set CRS for spatial join
+    gcha.crs = blocks.crs
     cha_with_geoid = geopandas.sjoin(gcha, blocks, how="left", 
                                                     op='intersects')
     cha_with_geoid.drop('index_right', axis=1, inplace=True)
@@ -87,10 +92,15 @@ def add_zillow_regionid_to_cha(gcha, zillow_filename):
     Returns: (GeoDataFrame) CHA geodataframe with block group GEOIDs
     '''
     zillow_neighborhoods = geopandas.read_file(zillow_filename)
+
+    # set CRS for spatial join
+    gcha.crs = zillow_neighborhoods.crs
     cha_geoid_zillow = geopandas.sjoin(gcha, zillow_neighborhoods, 
                                         how="left", op='intersects')
+    # drop unmatches and extra columns
     cha_geoid_zillow.dropna(axis=0, subset=["index_right"], inplace=True)
     cha_geoid_zillow.drop('index_right', axis=1, inplace=True)
+
     return cha_geoid_zillow
 
 
