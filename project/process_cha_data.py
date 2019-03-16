@@ -4,11 +4,6 @@ import geopandas
 from shapely.geometry import Point
 import matplotlib.pyplot as plt
 
-CHA_DICT_RAW = "data/CHA_rental_data.obj"
-BLOCKS_GEOFILE = "data/block-groups.geojson"
-ZILLOW_GEOFILE = "data/ZillowNeighborhoods-IL.shp"
-CHA_CLEAN = "processed_data/CHA_clean.csv"
-CHA_WITH_KEYS = "processed_data/CHA_with_merge_keys.csv"
 
 def process_cha_data(cha_dict_raw, blocks_filename, zillow_filename,
                 output_filename_for_clean, output_filename_with_keys):
