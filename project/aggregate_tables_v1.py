@@ -15,36 +15,6 @@ def read_block_group_data(evictions_filepath):
 
     return evictions_2016
 
-# def aggregate_block_group_data(block_group_df, geography_to_aggregate):
-#     if geography_to_aggregate == "neighborhood":
-#         merged = 
-#     agg = grouped.agg({'population' : 'sum',
-#                        'evictions' : 'sum',
-#                        'eviction-filings' : 'sum',
-#                        'renter-occupied-households' : 'sum',
-#                        })
-
-#      #calculate eviction rates
-#     agg['eviction_rate'] = agg['evictions']/agg['renter-occupied-households']
-#     agg['eviction_filing_rate'] = agg['eviction-filings']/agg['renter-occupied-households']
-
-# def merge_block_group_locator(locator_database, block_group_filepath):
-#     '''
-#     Merge the block group data and the evictions data
-
-#     Input:
-#         - locator_database (pandas df)
-#         - block_group_filepath (csv file)
-
-#     Ouput:
-#         - pandas df
-#     '''
-#     blocks = read_block_group_data("data/block-groups.csv")
-#     merged = locator_database.merge(blocks, how="outer", on="GEOID", indicator=True)  
-
-#     return merged
-
-
 
 '''
 make a cook county comparison for eviction rate data
@@ -80,7 +50,6 @@ def aggregate_table_by_neighborhood(locator_database_aggregated_geoid,
                                     block_group_df, output_file):
     #generate transit dummy
     merged = locator_database_aggregated_geoid.merge(block_group_df, how="left", on="GEOID", indicator=True)
-
     grouped = merged.groupby('Name')
     agg = grouped.agg({'num_cha_properties' : 'sum', 
                        'stop_wi_quart_mi' : 'sum', 
@@ -101,13 +70,14 @@ def aggregate_table_by_neighborhood(locator_database_aggregated_geoid,
     agg['eviction_rate'] = (agg['evictions']/agg['renter-occupied-households'])*100
     agg['eviction_filing_rate'] = (agg['eviction-filings']/agg['renter-occupied-households'])*100    
 
-    agg = agg.filter(['num_cha_properties',
-                      'Avg_monthly_rent',
-                      'percent_wi_quart_mi_l_stop',
-                      'percent_wi_half_mi_l_stop',
-                      'num_props_w_potential_bad_landlord',
-                      'eviction_rate', 
-                      'eviction_filing_rate'], axis=1)
+    # agg = agg.filter(['num_cha_properties',
+    #                   'Avg_monthly_rent',
+    #                   'percent_wi_quart_mi_l_stop',
+    #                   'percent_wi_half_mi_l_stop',
+    #                   'num_props_w_potential_bad_landlord',
+    #                   'eviction_rate', 
+    #                   'eviction_filing_rate',
+    #                   'population'], axis=1)
 
     agg = agg.sort_values(by='num_cha_properties', ascending=False)
 
@@ -115,55 +85,57 @@ def aggregate_table_by_neighborhood(locator_database_aggregated_geoid,
 
     return agg
 
-# def aggregate_table(locator_database, block_group_filepath, column_agg_by, output_file):
-#     #generate transit dummy
-#     blocks = read_block_group_data("data/block-groups.csv")
+def filter_chicago_block_groups(list_chicago_geoids_csv, block_group_df):
+    '''
+    chicago geoids: "list_of_chi_geoids.csv"
+    '''
+    chi_geoid = pd.read_csv(list_chicago_geoids_csv, 
+                            header=None, names=["index", "GEOID"], usecols=[1])
+    merged = chi_geoid.merge(block_group_df,
+                                  how="left", on="GEOID", indicator=True)
 
-#     locator_database['stop_wi_quart_mi'] = np.where(locator_database['num_stops_quart_mi'] > 0, 1, 0)
-#     locator_database['stop_wi_half_mi'] = np.where(locator_database['num_stops_half_mi'] > 0, 1, 0)
-#     locator_database['stop_wi_half_mi'] = np.where(locator_database['num_stops_half_mi'] > 0, 1, 0)
-#     # locator_database['bad_landlord']
-#     #groupby and aggregate
-#     merged = locator_database.merge(blocks, how="outer", on="GEOID", indicator=True)  
+    return merged
 
-#     grouped = merged.groupby(column_agg_by)
+def aggregate_table_CHA_compare(locator_database_aggregated_geoid,
+                    block_group_df, output_file):
+    
+    merged = block_group_df.merge(locator_database_aggregated_geoid,
+                                  how="left", on="GEOID", indicator=True)
 
-#     agg_not_on_geoid = {'Address' : 'count', 
-#                        'stop_wi_quart_mi' : 'sum', 
-#                        'stop_wi_half_mi' : 'sum', 
-#                        'population' : 'sum',
-#                        'evictions' : 'sum',
-#                        'eviction-filings' : 'sum',
-#                        'renter-occupied-households' : 'sum',
-#                     }
+    merged['cha_neighborhood'] = np.where(merged['_merge'] == "both", 1, 0)
 
-#     geoid_specific_vars = {'median-gross-rent': 'mean',
-#                            'median-household-income': 'mean', 
-#                            'median-property-value' : 'mean',
-#                            'rent-burden': 'mean'}
+    race_vars = ['pct-white', 'pct-af-am', 'pct-hispanic', 'pct-am-ind', 'pct-asian']
+    for var in race_vars:
+        new_var = var[4:] + '_pop'
+        merged[new_var] = (merged[var]/100)*merged['population']
 
-#     combined_dict = {**agg_not_on_geoid, **geoid_specific_vars}
+    #weight the geoids by the population 
+    merged['geoid_weight'] = merged['population']/merged['population'].sum()
+    
+    merged['median-household-income-wght'] = merged['median-household-income']*merged['geoid_weight']
 
-#     if column_agg_by == "GEOID":
-#         agg = grouped.agg({**agg_not_on_geoid, **geoid_specific_vars
-#                         })
+    grouped = merged.groupby('cha_neighborhood')
 
-#     else:
-#        agg = grouped.agg({agg_not_on_geoid
-#                 }) 
+    agg = grouped.agg({'num_cha_properties' : 'sum', 
+                       'population' : 'sum',
+                       'evictions' : 'sum',
+                       'eviction-filings' : 'sum',
+                       'renter-occupied-households' : 'sum',
+                       'white_pop' : 'sum',
+                       'af-am_pop' : 'sum',
+                       'hispanic_pop' : 'sum',
+                       'asian_pop' : 'sum',
+                       'median-household-income-wght' : 'sum'
+                    })
 
-#     # 'population', 'eviction-filings', 'evictions'
-#     #calculate rates
-#     agg = agg.rename(columns={'Address': "num_cha_properties"})
+    #calculate rates
+    agg['eviction_rate'] = agg['evictions']/agg['renter-occupied-households']
+    agg['eviction_filing_rate'] = agg['eviction-filings']/agg['renter-occupied-households']
+    agg['white-pct'] = agg['white_pop']/agg["population"]
+    agg['af-am-pct'] = agg['af-am_pop']/agg["population"]
+    agg['hispanic-pct'] = agg['hispanic_pop']/agg["population"]
 
-#     agg['percent_wi_quart_mi_l_stop'] = agg['stop_wi_quart_mi']/agg['num_cha_properties']
-#     agg['percent_wi_half_mi_l_stop'] = agg['stop_wi_half_mi']/agg['num_cha_properties']
-
-#     # #calculate eviction rates
-#     agg['eviction_rate'] = agg['evictions']/agg['renter-occupied-households']
-#     agg['eviction_filing_rate'] = agg['eviction-filings']/agg['renter-occupied-households']
-#     agg = agg.filter(['percent_wi_quart_mi_l_stop', 'percent_wi_half_mi_l_stop', 'num_cha_properties'], axis=1)
-#     agg = agg.sort_values(by='num_cha_properties', ascending=False)
+    return agg
 
 #     agg.to_csv(output_file)
 
