@@ -91,9 +91,9 @@ def filter_chicago_block_groups(list_chicago_geoids_csv, block_group_df):
     '''
     chi_geoid = pd.read_csv(list_chicago_geoids_csv, 
                             header=None, names=["index", "GEOID"], usecols=[1])
+    chi_geoid = chi_geoid.drop_duplicates('GEOID', keep='first')
     merged = chi_geoid.merge(block_group_df,
-                                  how="left", on="GEOID", indicator=True)
-
+                                  how="left", on="GEOID")
     return merged
 
 def aggregate_table_CHA_compare(locator_database_aggregated_geoid,
@@ -134,6 +134,8 @@ def aggregate_table_CHA_compare(locator_database_aggregated_geoid,
     agg['white-pct'] = agg['white_pop']/agg["population"]
     agg['af-am-pct'] = agg['af-am_pop']/agg["population"]
     agg['hispanic-pct'] = agg['hispanic_pop']/agg["population"]
+
+    agg.to_csv(output_file)
 
     return agg
 
