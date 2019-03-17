@@ -82,6 +82,10 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
     merged = merge_on_index(merged, cha_to_landlords)
     merged = merge_on_index(merged, cha_to_transit)
 
+    # compute eviction rate percentiles
+    merged["er_percentile"] = merged["eviction-rate"].rank(pct=True)
+    merged["efr_percentile"] = merged["eviction-filing-rate"].rank(pct=True)
+
     print("Saving the database...")
     # format and write to csv
     format_db(merged)

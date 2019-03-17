@@ -36,93 +36,56 @@ def search(criteria, output_filepath):
     c = criteria.d
 
     if c["Address"]:
-        if isinstance(c["Address"], str):
-            f1 = rv.Address == c["Address"]
-            rv = rv[f1]
-        else:
-            raise TypeError("Wrong input type - Address input is not a str")
+        f1 = rv.Address == c["Address"]
+        rv = rv[f1]
 
     if c["Monthly Rent"]:
-        if isinstance(c["Monthly Rent"], tuple):
-            lb_rent, ub_rent = c["Monthly Rent"]
-            if isinstance(lb_rent, int) and isinstance(ub_rent, int):
-                f2 = (rv["Monthly Rent"] >= lb_rent) & \
-                        (rv["Monthly Rent"] <= ub_rent)
-                rv = rv[f2]
-            else:
-                raise TypeError("Wrong input type - rent min/max are not int")
-        else:
-            raise TypeError("Wrong input type - \
-                                    Monthly rent input is not a tuple")
+        lb_rent, ub_rent = c["Monthly Rent"]
+        f2 = (rv["Monthly Rent"] >= lb_rent) & (rv["Monthly Rent"] <= ub_rent)
+        rv = rv[f2]
 
     if c["Property Type"]:
-        if all(elem in ptypes for elem in c["Property Type"]):
-            f3 = rv["Property Type"].isin(c["Property Type"])
-            rv = rv[f3]
-        else:
-            errmsg = "Wrong input value for Property Type\n" + \
-                    "Input a list containing the following:\n" + \
-                    str(ptypes)
-            raise ValueError(errmsg)
+        f3 = rv["Property Type"].isin(c["Property Type"])
+        rv = rv[f3]
 
     if c["Bath"]:
-        if isinstance(c["Bath"], tuple):
-            lb_bath, ub_bath = c["Bath"]
-            if isinstance(lb_bath, (int, float)) and \
-                isinstance(ub_bath, (int, float)):
-                f4 = (rv.Bath >= lb_bath) & (rv.Bath <= ub_bath)
-                rv = rv[f4]
-            else:
-                raise TypeError("Wrong input type - \
-                                        bath min/max are not int/floats")
-        else:
-            raise TypeError("Wrong input type - Bath input is not a tuple")
+        lb_bath, ub_bath = c["Bath"]
+        f4 = (rv.Bath >= lb_bath) & (rv.Bath <= ub_bath)
+        rv = rv[f4]
 
     if c["Bed"]:
-        if isinstance(c["Bed"], tuple):
-            lb_bed, ub_bed = c["Bed"]
-            if isinstance(lb_bed, (int, float)) and \
-                isinstance(ub_bed, (int, float)):
-                f5 = (rv.Bed >= lb_bed) & (rv.Bed <= ub_bed)
-                rv = rv[f5]
-            else:
-                raise TypeError("Wrong input type - \
-                                        bed min/max are not int/floats")
-        else:
-            raise TypeError("Wrong input type - Bed input is not a tuple")
+        lb_bed, ub_bed = c["Bed"]
+        f5 = (rv.Bed >= lb_bed) & (rv.Bed <= ub_bed)
+        rv = rv[f5]
 
     if c["Available Now"]:
-        if isinstance(c["Available Now"], bool):
-            f6 = rv.Availability == "Available Now"
-            rv = rv[f6]
-        else:
-            raise TypeError("Wrong input type - \
-                                        Available now input is not bool")
+        f6 = rv.Availability == "Available Now"
+        rv = rv[f6]
 
     if c["Neighborhood"]:
-        if all(elem in nbh for elem in c["Neighborhood"]):
-            f7 = rv.Neighborhood.isin(c["Neighborhood"])
-            rv = rv[f7]
-        else:
-            errmsg = "Wrong input value for Neighborhood\n" + \
-                    "Input a list containing the following: " + str(nbh)
-            raise ValueError(errmsg)
+        f7 = rv.Neighborhood.isin(c["Neighborhood"])
+        rv = rv[f7]
 
     if c["Has L-Stop within _ Mile"]:
         d = c["Has L-Stop within _ Mile"]
-        if d in dist_to_col:
-            f8 = rv[dist_to_col[d]] > 0
-            rv = rv[f8]
-        else:
-            errmsg = "Wrong input value for distance to L-stop\n" + \
-                    "Input one of the following values:\n" + \
-                    str(list(dist_to_col))
-            raise ValueError(errmsg)
+        f8 = rv[dist_to_col[d]] > 0
+        rv = rv[f8]
 
     if rv.empty:
-        print("No listing found.")
+        print("No listing found")
         return
     else:
+        cols_for_user = ['Address', 'Monthly Rent', 'Property Type',
+                        'Bath', 'Bed', 'Availability', 'Contact',
+                        'URL', 'State', 'County', 'City', 'Neighborhood',
+                        '2016_evict_rate', 'er_percentile',
+                        '2016_evict_filing_rate', 'efr_percentile',
+                        '2011-2015_rent_perc_change', 
+                        '2015-2019_rent_perc_change',
+                        'potential_bad_landlord', 'bad_landlord_address',
+                        'num_stops_quart_mi', 'num_stops_half_mi',
+                        'num_stops_3quart_mi', 'num_stops_1_mi']
+        rv = rv[cols_for_user]
         rv.to_csv(output_filepath)
         print("{} search results saved in {}".format(
                             len(rv), output_filepath))
@@ -175,19 +138,14 @@ class Criteria:
             field_to_value: (dict) search fields to value 
         '''
         for f, v in field_to_value.items():
-            if f in self.d:
-                
-
-
-
-
-
-
-                self.d[f] = v
-            else:
+            if f not in self.d:
                 raise ValueError("{} is not a valid field\n".format(f) +
                     "Input one of the following fields: " +  
                     str(list(self.d)))
+            else:
+                if self.__has_correct_input(f, v):
+                    self.d[f] = v
+
 
     def clear_criteria(self):
         '''
@@ -202,6 +160,106 @@ class Criteria:
                 "Neighborhood": None,
                 "Has L-Stop within _ Mile": None}
         print("All search fields are now cleared")
+
+
+    def __has_correct_input(self, f, v):
+        '''
+        check input value types
+        '''
+        if f == "Address":
+            if isinstance(v, str):
+                return True
+            else:
+                raise TypeError("Wrong input type - " + \
+                                "Address input should be a str")
+        if f == "Monthly Rent":
+            if not isinstance(v, tuple):
+                raise TypeError("Wrong input type - " + \
+                                "Monthly rent input should be a tuple")
+            else:                
+                lb_rent, ub_rent = v
+                if isinstance(lb_rent, int) and isinstance(ub_rent, int):
+                    if lb_rent <= ub_rent:
+                        return True
+                    else:
+                        raise ValueError(
+                            "Lower bound should be lower than upper bound")
+                else:
+                    raise TypeError("Wrong input type - " + \
+                                    "rent min/max are not int")
+
+        if f == "Property Type":
+            if not isinstance(v, list):
+                raise TypeError("Wrong intput type - " + \
+                                "Property type input should be a list")
+            elif all(elem in ptypes for elem in v):
+                return True
+            else:
+                errmsg = "Wrong input value for Property Type\n" + \
+                        "Input a list containing the following:\n" + \
+                        str(ptypes)
+                raise ValueError(errmsg)
+
+        if f == "Bath":
+            if not isinstance(v, tuple):
+                raise TypeError("Wrong input type -" + \
+                                " Bath input should be a tuple")
+            else:
+                lb_bath, ub_bath = v
+                if isinstance(lb_bath, (int, float)) and \
+                    isinstance(ub_bath, (int, float)):
+                    if lb_bath <= ub_bath:
+                        return True
+                    else:
+                        raise ValueError(
+                            "Lower bound should be lower than upper bound")
+                else:
+                    raise TypeError("Wrong input type - " + \
+                                    "bath min/max are not int/floats")
+        
+        if f == "Bed":
+            if not isinstance(v, tuple):
+                raise TypeError("Wrong input type - Bed input should be a tuple")
+            else:
+                lb_bed, ub_bed = v
+                if isinstance(lb_bed, (int, float)) and \
+                    isinstance(ub_bed, (int, float)):
+                    if lb_bed <= ub_bed:
+                        return True
+                    else:
+                        raise ValueError(
+                            "Lower bound should be lower than upper bound")
+                else:
+                    raise TypeError("Wrong input type - " + \
+                                    "bath min/max are not int/floats")
+
+        if f == "Available Now":
+            if isinstance(v, bool):
+                return True
+            else:
+                raise TypeError("Wrong input type - " + \
+                                "Available now input is not bool")
+
+        if f == "Neighborhood":
+            if not isinstance(v, list):
+                raise TypeError("Wrong intput type - " + \
+                                "Neighborhood input should be a list")
+            elif all(elem in nbh for elem in v):
+                return True
+            else:
+                errmsg = "Wrong input value for Neighborhood\n" + \
+                        "Input a list containing the following: " + str(nbh)
+                raise ValueError(errmsg)
+
+        if f == "Has L-Stop within _ Mile":
+            if v in dist_to_col:
+                return True
+            else:
+                errmsg = "Wrong input value for distance to L-stop\n" + \
+                        "Input one of the following values:\n" + \
+                        str(list(dist_to_col))
+                raise ValueError(errmsg)
+
 
     def __repr__(self):
         '''
