@@ -175,19 +175,38 @@ def agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file):
     agg = agg.rename(columns={'num_cha_properties' : 'num_neighborhoods'})
 
 
-    neigh_summary = agg[['num_neighborhoods','poverty_rate', 'eviction_rate', 'integrated',  
-           'maj_black', 'less_20_perc_pov', 'maj_white', 'maj_latino']]
+    neigh_summary = agg[['num_neighborhoods','poverty_rate', 'less_20_perc_pov', 
+                        'eviction_rate', 'integrated',  'maj_black', 'maj_white',
+                         'maj_latino']]
 
     neigh_summary.to_csv(output_file)
 
     return neigh_summary
+
+def num_homes_in_mobility_neigh(master_agg_by_neigh, output_file):
+    '''
+    % of homes in neighborhoods with less than 20% poverty
+    '''
+    master_agg_by_neigh['less_20_perc_pov'] = np.where(master_agg_by_neigh['poverty_rate'] < .2, 
+                                                        1, 0)
+    grouped =  master_agg_by_neigh.groupby('less_20_perc_pov')
+    agg = grouped.agg({'num_cha_properties' : 'sum',
+                        'eviction_rate' : 'mean',
+                        'poverty_rate' : 'mean'})
+
+    neigh_by_pov = agg[['num_cha_properties','poverty_rate', 
+                        'eviction_rate']]
+
+    neigh_by_pov.to_csv(output_file)
+
+    return neigh_by_pov
 
 #reorder
 #perhaps make them into percentages? 
 #make pretty in excel.
 def build_agg_tables(locator_database_csv, block_groups_csv, 
        list_chicago_geoids_csv, geoid_to_region_id_map_csv,
-       output_file1, output_file2):
+       output_file1, output_file2, output_file3):
 
     locator_database = pd.read_csv(locator_database_csv, index_col="index")
     block_group_df = read_block_group_data(block_groups_csv)
@@ -199,6 +218,7 @@ def build_agg_tables(locator_database_csv, block_groups_csv,
 
     master_agg_by_neigh = master_agg_by_neighborhood(agg_df_by_geoid, output_file1)
     agg_CHA_non_CHA = agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file2)
+    homes_by_poverty = num_homes_in_mobility_neigh(master_agg_by_neigh, output_file3)
 
 
 LOCATOR_DB_CSV = "processed_data/locator_database.csv"
@@ -207,6 +227,8 @@ CHICAGO_GEOIDS = "list_of_chi_geoids.csv"
 GEOID_TO_REGIONID = "all_geography_merge.csv"
 OUTPUT_FILE1 = "processed_data/agg_table_by_neighborhood.csv"
 OUTPUT_FILE2 = "processed_data/agg_table_hsv_non_hsv.csv"
+OUTPUT_FILE3 = "processed_data/homes_in_pov_neighborhood.csv"
+
 
 def main():
     '''
@@ -219,7 +241,8 @@ def main():
         CHICAGO_GEOIDS, 
         GEOID_TO_REGIONID,
         OUTPUT_FILE1,
-        OUTPUT_FILE2)
+        OUTPUT_FILE2,
+        OUTPUT_FILE3)
 
 
 if __name__ == '__main__':
