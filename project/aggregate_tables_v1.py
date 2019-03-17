@@ -9,8 +9,8 @@ def read_locator_db(filepath):
     return ld
 
 
-def read_block_group_data(evictions_filepath):
-    evictions = pd.read_csv(evictions_filepath)
+def read_block_group_data(block_groups_csv):
+    evictions = pd.read_csv(block_groups_csv)
     evictions_2016 = evictions[evictions['year']==2016]
 
     race_vars = ['pct-white', 'pct-af-am', 'pct-hispanic', 'pct-asian']
@@ -27,6 +27,7 @@ def read_block_group_data(evictions_filepath):
                                     'eviction-filings', 'evictions',
                                     'white_pop', 'af-am_pop', 'hispanic_pop',
                                     'asian_pop', 'people_in_poverty']]
+    
     return evictions_2016
 
 '''
@@ -102,7 +103,7 @@ def master_agg_by_neighborhood(agg_df_by_geoid, output_file):
     agg['percent_wi_quart_mi_l_stop'] =agg['stop_wi_quart_mi']/agg['num_cha_properties']
     agg['percent_wi_half_mi_l_stop'] = agg['stop_wi_half_mi']/agg['num_cha_properties']
     agg['Avg_cha_monthly_rent'] = agg['total_rent']/agg['num_cha_properties']
-    agg['perc_rentals_cha'] = agg['num_cha_properties']/agg['renter-occupied-households']
+    agg['perc_rentals_hcv'] = agg['num_cha_properties']/agg['renter-occupied-households']
     agg['perc_hcv_in_neigh'] = agg['num_cha_properties']/agg['num_cha_properties'].sum()
     agg['at_least_10_homes'] = np.where(agg['num_cha_properties'] >= 10, 1, 0)
 
@@ -122,11 +123,13 @@ def master_agg_by_neighborhood(agg_df_by_geoid, output_file):
     # neigh_w_chas = agg[agg['num_cha_properties'] > 0]
     master_agg_by_neighborhood = agg[['num_cha_properties', 'Avg_cha_monthly_rent', 
                'stop_wi_quart_mi',  'stop_wi_half_mi', 
-               'percent_wi_quart_mi_l_stop', 'percent_wi_half_mi_l_stop',
+               'percent_wi_quart_mi_l_stop', 'percent_wi_half_mi_l_stop', 
+               "num_props_w_potential_bad_landlord",
+               'poverty_rate',
                'eviction-filings', 'evictions',
                'eviction_filing_rate', 'eviction_rate', 'evictions_chi_percentile_rank',
-               'renter-occupied-households', 'perc_rentals_cha',
-               'population', 'poverty_rate', 'perc_hcv_in_neigh', 'at_least_10_homes', 
+               'renter-occupied-households', 'perc_rentals_hcv',
+               'population',  'perc_hcv_in_neigh', 'at_least_10_homes', 
                'perc_black','perc_latino', 'perc_white' ]]
 
     master_agg_by_neighborhood.to_csv(output_file)
@@ -171,8 +174,53 @@ def agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file):
     
     agg = agg.rename(columns={'num_cha_properties' : 'num_neighborhoods'})
 
-    return agg
+
+    neigh_summary = agg[['num_neighborhoods','poverty_rate', 'eviction_rate', 'integrated',  
+           'maj_black', 'less_20_perc_pov', 'maj_white', 'maj_latino']]
+
+    neigh_summary.to_csv(output_file)
+
+    return neigh_summary
 
 #reorder
 #perhaps make them into percentages? 
 #make pretty in excel.
+def build_agg_tables(locator_database_csv, block_groups_csv, 
+       list_chicago_geoids_csv, geoid_to_region_id_map_csv,
+       output_file1, output_file2):
+
+    locator_database = pd.read_csv(locator_database_csv, index_col="index")
+    block_group_df = read_block_group_data(block_groups_csv)
+    ld_by_geoid = aggregate_cha_by_geoid(locator_database)
+    agg_df_by_geoid = make_master_agg_dataset(list_chicago_geoids_csv, 
+                                             block_group_df, 
+                                             geoid_to_region_id_map_csv, 
+                                             ld_by_geoid)
+
+    master_agg_by_neigh = master_agg_by_neighborhood(agg_df_by_geoid, output_file1)
+    agg_CHA_non_CHA = agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file2)
+
+
+LOCATOR_DB_CSV = "processed_data/locator_database.csv"
+BLOCK_GROUPS_CSV = "data/block-groups.csv" 
+CHICAGO_GEOIDS = "list_of_chi_geoids.csv"
+GEOID_TO_REGIONID = "all_geography_merge.csv"
+OUTPUT_FILE1 = "processed_data/agg_table_by_neighborhood.csv"
+OUTPUT_FILE2 = "processed_data/agg_table_hsv_non_hsv.csv"
+
+def main():
+    '''
+    Build, format, and stores database as csv.
+    Returns nothing.
+    '''
+    db = build_agg_tables(
+        LOCATOR_DB_CSV, 
+        BLOCK_GROUPS_CSV, 
+        CHICAGO_GEOIDS, 
+        GEOID_TO_REGIONID,
+        OUTPUT_FILE1,
+        OUTPUT_FILE2)
+
+
+if __name__ == '__main__':
+    main()
