@@ -18,12 +18,15 @@ def read_block_group_data(evictions_filepath):
         new_var = var[4:] + '_pop'
         evictions_2016[new_var] = (evictions_2016[var]/100)*evictions_2016['population']
 
+
+    evictions_2016['people_in_poverty'] = evictions_2016['population']* \
+                            (evictions_2016['poverty-rate']/100)
     evictions_2016 = evictions_2016[['GEOID', 'parent-location', 'population',
                                     'renter-occupied-households',
                                     'median-household-income',
                                     'eviction-filings', 'evictions',
                                     'white_pop', 'af-am_pop', 'hispanic_pop',
-                                    'asian_pop']]
+                                    'asian_pop', 'people_in_poverty']]
     return evictions_2016
 
 '''
@@ -41,11 +44,11 @@ def aggregate_cha_by_geoid(locator_database):
 
     group_geoids = locator_database.groupby(["GEOID"]) 
     ld_by_geoid = group_geoids.agg({'Address' : 'count', 
-                       'stop_wi_quart_mi' : 'sum', 
-                       'stop_wi_half_mi' : 'sum', 
-                       'pot_bad_landlord' : 'sum',
-                       'Monthly Rent' : 'sum', 
-                    }) 
+                                   'stop_wi_quart_mi' : 'sum', 
+                                   'stop_wi_half_mi' : 'sum', 
+                                   'pot_bad_landlord' : 'sum',
+                                   'Monthly Rent' : 'sum', 
+                                    }) 
 
     ld_by_geoid = ld_by_geoid.rename(columns={'Address': "num_cha_properties", 
                               'pot_bad_landlord': "num_props_w_potential_bad_landlord",
@@ -80,122 +83,96 @@ def make_master_agg_dataset(list_chicago_geoids_csv, block_group_df,
                                            how="left", on="GEOID")
     evictions_full = evictions_full.rename(columns={'Name': 'Neighborhood'})
 
-    merged_w_cha = evictions_full.merge(ld_by_geoid, 
+    agg_df_by_geoid = evictions_full.merge(ld_by_geoid, 
                                         how="left", on="GEOID", indicator=True)
 
-    return merged_w_cha
+    return agg_df_by_geoid
 
 
-def master_agg_table_by_neighborhood(chicago_block_df, ld_by_geoid):
+def master_agg_by_neighborhood(agg_df_by_geoid, output_file):
     '''
-    1. Merge locator database to chicago df by geoid
-    2. agg by neighborhood
-    3. add column to indicate a "CHA neighborhood vs. non-CHA neighborhood"
-        (by threshold)
-    4. Add neighborhood level calculations
-        - weighted avg for median income by neighborhood
-        - we only have the median income by geoid.
-        - to create an imperfect calculation of median income of 
-          neighborhood:
-            - Create a weight for each 
+    Create first aggregation table of the information about neighborhoods
+    continaing CHA houses
     '''
-    agg = ld_aggregated_geoid.groupby('Neighborhood').agg('sum')
+    agg = agg_df_by_geoid.groupby('Neighborhood').agg('sum')
 
     #neighborhood level calculations
-    agg['percent_wi_quart_mi_l_stop'] = agg['stop_wi_quart_mi']/agg['num_cha_properties']
+
+    #cha related stats
+    agg['percent_wi_quart_mi_l_stop'] =agg['stop_wi_quart_mi']/agg['num_cha_properties']
     agg['percent_wi_half_mi_l_stop'] = agg['stop_wi_half_mi']/agg['num_cha_properties']
-    agg['Avg_monthly_rent'] = agg['total_rent']/agg['num_cha_properties']
-    agg['eviction_rate'] = (agg['evictions']/agg['renter-occupied-households'])*100
-    agg['eviction_filing_rate'] = (agg['eviction-filings']/agg['renter-occupied-households'])*100    
+    agg['Avg_cha_monthly_rent'] = agg['total_rent']/agg['num_cha_properties']
     agg['perc_rentals_cha'] = agg['num_cha_properties']/agg['renter-occupied-households']
+    agg['perc_hcv_in_neigh'] = agg['num_cha_properties']/agg['num_cha_properties'].sum()
+    agg['at_least_10_homes'] = np.where(agg['num_cha_properties'] >= 10, 1, 0)
 
-    #weighted avg for median income by neighborhood
-
-
-def agg_cha_table_by_neighborhood(ld_aggregated_geoid,
-                                    output_file):
-    #generate transit dummy
-    # merged = locator_database_aggregated_geoid.merge(block_group_df, how="left", on="GEOID", indicator=True)
+    #eviction and poverty rates
+    agg['eviction_rate'] = (agg['evictions']/agg['renter-occupied-households'])
+    agg['eviction_filing_rate'] = (agg['eviction-filings']/agg['renter-occupied-households'])   
+    agg['poverty_rate'] = agg['people_in_poverty']/agg['population']
+    agg['evictions_chi_percentile_rank']=(agg['eviction_rate'].rank(pct=True))
     
-    # agg = ld_aggregated_geoid.groupby('Neighborhood').agg('sum')
-    # #calculate rates by Neighborhood
-    # agg['percent_wi_quart_mi_l_stop'] = agg['stop_wi_quart_mi']/agg['num_cha_properties']
-    # agg['percent_wi_half_mi_l_stop'] = agg['stop_wi_half_mi']/agg['num_cha_properties']
-    # agg['Avg_monthly_rent'] = agg['total_rent']/agg['num_cha_properties']
-    # agg['eviction_rate'] = (agg['evictions']/agg['renter-occupied-households'])*100
-    # agg['eviction_filing_rate'] = (agg['eviction-filings']/agg['renter-occupied-households'])*100    
-    # agg['perc_rentals_cha'] = agg['num_cha_properties']/agg['renter-occupied-households']
-    # # agg = agg.filter(['num_cha_properties',
-    # #                   'Avg_monthly_rent',
-    # #                   'percent_wi_quart_mi_l_stop',
-    # #                   'percent_wi_half_mi_l_stop',
-    # #                   'num_props_w_potential_bad_landlord',
-    # #                   'eviction_rate', 
-    # #                   'eviction_filing_rate',
-    # #                   'population'], axis=1)
+    #demographic rates
+    agg['perc_black'] = agg['af-am_pop']/agg['population']
+    agg['perc_latino'] = agg['hispanic_pop']/agg['population']
+    agg['perc_white'] = agg['white_pop']/agg['population']
 
-    
     agg = agg.sort_values(by='num_cha_properties', ascending=False)
     
-    ld_by_neighborhood = agg[['num_cha_properties', 'Avg_monthly_rent', 
+    # neigh_w_chas = agg[agg['num_cha_properties'] > 0]
+    master_agg_by_neighborhood = agg[['num_cha_properties', 'Avg_cha_monthly_rent', 
                'stop_wi_quart_mi',  'stop_wi_half_mi', 
                'percent_wi_quart_mi_l_stop', 'percent_wi_half_mi_l_stop',
                'eviction-filings', 'evictions',
-               'eviction_filing_rate', 'eviction_rate',
+               'eviction_filing_rate', 'eviction_rate', 'evictions_chi_percentile_rank',
                'renter-occupied-households', 'perc_rentals_cha',
-               'population']]
+               'population', 'poverty_rate', 'perc_hcv_in_neigh', 'at_least_10_homes', 
+               'perc_black','perc_latino', 'perc_white' ]]
 
-    ld_by_neighborhood.to_csv(output_file)
+    master_agg_by_neighborhood.to_csv(output_file)
 
-    return ld_by_neighborhood
+    return master_agg_by_neighborhood
 
-  
+#decide which columns to keep or drop if you want to? 
 
-# def agg_CHA_non_CHA_compare(ld_by_neighborhood, block_group_df, output_file):
+## meaningful question - What choices to HCV families have? Where can they live?
+
+def agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file):
+    '''
+    Compare neighborhoods with at least 10 homes available in them to homes
+    with less than 10. 96% of the HCV homes in the list are in neighborhoods 
+    with at least 10 homes available.
+
+    https://interactive.wbez.org/curiouscity/segregation-map/ 
+
+    Note: Used WBEZ's defintion of integrated from source above: 
+        Integrated = "Which we define as a condition where no single race 
+        comprises two-thirds or more of an area’s population.
+    '''
+    master_agg_by_neigh['less_20_perc_pov'] = np.where(master_agg_by_neigh['poverty_rate'] < .2, 
+                                                        1, 0)
     
-
-#     grouped = block_group_df.groupby('name')
-#     grouped.agg({'population': 'sum',
-#         'renter-occupied-households'})
-
-
-#     # merged = block_group_df.merge(locator_database_aggregated_geoid,
-#     #                               how="left", on="GEOID", indicator=True)
-
-#     merged['cha_neighborhood'] = np.where(merged['_merge'] == "both", 1, 0)
-
-#     race_vars = ['pct-white', 'pct-af-am', 'pct-hispanic', 'pct-am-ind', 'pct-asian']
-#     for var in race_vars:
-#         new_var = var[4:] + '_pop'
-#         merged[new_var] = (merged[var]/100)*merged['population']
-
-#     #weight the geoids by the population 
-#     merged['geoid_weight'] = merged['population']/merged['population'].sum()
+    master_agg_by_neigh['maj_black'] = np.where(master_agg_by_neigh['perc_black'] >=.66, 1, 0)
+    master_agg_by_neigh['maj_white'] = np.where(master_agg_by_neigh['perc_white'] >=.66, 1, 0)
+    master_agg_by_neigh['maj_latino'] = np.where(master_agg_by_neigh['perc_latino'] >=.66, 1, 0)
+    integrated_mask = (master_agg_by_neigh['maj_black'] == 0) & \
+                      (master_agg_by_neigh['maj_white'] == 0) & \
+                      (master_agg_by_neigh['maj_latino'] == 0)                  
+    master_agg_by_neigh['integrated'] = np.where(integrated_mask == True, 1, 0)
+    grouped =  master_agg_by_neigh.groupby('at_least_10_homes')
+    agg = grouped.agg({'num_cha_properties' : 'count',
+                        'eviction_rate' : 'mean',
+                        'poverty_rate' : 'mean',
+                        'less_20_perc_pov' : 'sum',
+                        'maj_black' : 'sum',
+                        'maj_white' : 'sum',
+                        'maj_latino' : 'sum',
+                        'integrated' : 'sum'})
     
-#     merged['median-household-income-wght'] = merged['median-household-income']*merged['geoid_weight']
+    agg = agg.rename(columns={'num_cha_properties' : 'num_neighborhoods'})
 
-#     grouped = merged.groupby('cha_neighborhood')
+    return agg
 
-#     agg = grouped.agg({'num_cha_properties' : 'sum', 
-#                        'population' : 'sum',
-#                        'evictions' : 'sum',
-#                        'eviction-filings' : 'sum',
-#                        'renter-occupied-households' : 'sum',
-#                        'white_pop' : 'sum',
-#                        'af-am_pop' : 'sum',
-#                        'hispanic_pop' : 'sum',
-#                        'asian_pop' : 'sum',
-#                        'median-household-income-wght' : 'sum'
-#                     })
-
-#     #calculate rates
-#     agg['eviction_rate'] = agg['evictions']/agg['renter-occupied-households']
-#     agg['eviction_filing_rate'] = agg['eviction-filings']/agg['renter-occupied-households']
-#     agg['white-pct'] = agg['white_pop']/agg["population"]
-#     agg['af-am-pct'] = agg['af-am_pop']/agg["population"]
-#     agg['hispanic-pct'] = agg['hispanic_pop']/agg["population"]
-
-#     agg.to_csv(output_file)
-
-#     return agg
-
+#reorder
+#perhaps make them into percentages? 
+#make pretty in excel.
