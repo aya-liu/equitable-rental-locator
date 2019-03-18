@@ -1,0 +1,44 @@
+Data Dictionary
+
+Geographic Data:
+    -Lat
+    -Long
+    -Coordinates
+    -GEOID
+    -State
+    -IL
+    -County
+    -City
+    -Neighborhood
+    -RegionID
+    -parent-location
+
+CHA Rental Data:
+    -Index: Unique ID for each housing unit
+    -Address: Address of the property
+    -Monthly Rent: Dollar amount of monthly rent
+    -Property Type: Apt, House, Townhouse, or Duplex
+    -Bath: Number of baths, 1, 1.5, 2, 2.5, or 3.5
+    -Availability
+    -Contact
+    -URL
+
+Zillow Rental Data:
+    -2011-2015 median rent percent change
+    -2015-2019 median rent percent change
+    Note: NAN values indicate that the rent was missing from either year
+
+Bad Landlord Data:
+    -Potential Bad Landlord: True means property is a specificed distance from the address of a property having a bad landlord. The default distance is 0.15 miles.
+
+Transit Data:
+    -num_stops_quart_mi: 
+    -num_stops_half_mi:
+    -num_stops_3quart_mi:
+    -num_stops_1_mi:
+
+Eviction_data:
+    -EvictionLab Data Dictionary: https://eviction-lab-data-downloads.s3.amazonaws.com/DATA_DICTIONARY.txt
+    -Added er_percentile and efr_percentile columns to show the percentile of the eviction rate of among CHA neighborhoods
+
+
