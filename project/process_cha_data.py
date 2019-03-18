@@ -1,7 +1,8 @@
 '''
-Clean rental unit data scraped from CHA website.
-Join units to Census block groups and Zillow neighborhoods on geocodes
+Cleans rental unit data scraped from CHA website.
+Joins units to Census block groups and Zillow neighborhoods on geocodes
 
+Aya Liu, Bhargavi Ganesh, Vedika Ahuja
 '''
 import pickle
 import pandas as pd
