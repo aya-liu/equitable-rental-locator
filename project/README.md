@@ -89,9 +89,9 @@ Run the following command to collect  listings from the [Chicago Housing Authori
 $ python3 cha_scraper.py <output filename>
 ```
 
-### Data Dictionary
-Included in DATA_DICTIONARY.txt
-
+Data Dictionary
+----
+See [DATA_DICTIONARY.txt](https://mit.cs.uchicago.edu/capp30122-win-19/ayaliu-bganesh-vedikaa/blob/master/project/DATA_DICTIONARY.txt).
 
 Authors
 ----
