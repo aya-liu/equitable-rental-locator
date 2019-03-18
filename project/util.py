@@ -1,5 +1,9 @@
 """
 Utility code
+
+Code source:
+CAPP30122-win-19 PA4
+
 """
 # pylint: disable-msg=invalid-name, broad-except, unused-variable
 # pylint: disable-msg=len-as-condition, no-else-return, undefined-variable
