@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from math import radians, cos, sin, asin, sqrt, ceil
-import vincenty
 
 
 def clean_L_stations(L_stations_csv):
