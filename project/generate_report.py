@@ -1,8 +1,14 @@
+'''
+Generates three csvs with neighborhood level summary statistics and a map
+
+Aya Liu, Bhargavi Ganesh, Vedika Ahuja
+
+'''
+import sys
 import pandas as pd
 import numpy as np
 import geopandas
 import matplotlib.pyplot as plt
-import sys
 
 LOCATOR_DB_CSV = "processed_data/locator_database.csv"
 BLOCK_GROUPS_CSV = "data/block-groups.csv" 
