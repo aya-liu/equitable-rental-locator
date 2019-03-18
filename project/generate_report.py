@@ -15,36 +15,42 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def build_agg_tables(locator_database_csv, block_groups_csv, city_blocks_json, 
-                     zillow_shapefile, output_file1, output_file2, output_file3, map_filename):
+                     zillow_shapefile, output_file1, output_file2, output_file3, 
+                     map_filename):
     '''
     Builds aggregate tables and map using functions below.
 
     Inputs:
-        -locator_database_csv (csv file) of the final locator database we created
-        -block_groups_csv (csv file) of the evictions database
-        -city_blocks_json(geojson file) of the city of Chicago by block group
-        -zillow_shapefile(shapefile) of the state of Illinois by zillow-defined neighborhood
-        -output_file1: filename (specified by the user) with a ".csv" ending for the CHA
-                       neighborhood-level aggregate tables
-        -output_file2: filename (specified by the user) with a ".csv" ending for aggregate table
-                       comparing CHA and non-CHA properties
-        -output_file3: filename (specified by the user) with a ".csv" ending for aggregate table
-                       comparing CHA and non-CHA properties
-        -map_filename: filename (specified by the user) with a ".png" ending for output map 
-                       showing the number of CHA properties on a map
+        -locator_database_csv: (csv file) of the final locator database 
+        -block_groups_csv: (csv file) of the evictions database
+        -city_blocks_json: (geojson file) of the city of Chicago by block group
+        -zillow_shapefile: (shapefile) of the state of Illinois by 
+                            zillow-defined neighborhood
+        -output_file1: filename (specified by the user) with 
+                        a ".csv" ending for the CHA neighborhood-level tables
+        -output_file2: filename (specified by the user) with a ".csv" 
+                       ending for table comparing CHA and non-CHA properties
+        -output_file3: filename (specified by the user) with a ".csv" ending 
+                       for aggregate table comparing CHA and non-CHA properties
+        -map_filename: filename (specified by the user) with a ".png" ending for 
+                       output map showing the number of CHA properties on a map
     '''
     #Inputs
     locator_database = read_locator_db(locator_database_csv)
     block_group_df = read_block_group_data(block_groups_csv)
     ld_by_geoid = aggregate_cha_by_geoid(locator_database)
     blocks_zillow_merge = create_city_blocks(city_blocks_json, zillow_shapefile)
-    agg_df_by_geoid = make_master_agg_dataset(blocks_zillow_merge, block_group_df, ld_by_geoid)
+    agg_df_by_geoid = make_master_agg_dataset(
+        blocks_zillow_merge, block_group_df, ld_by_geoid)
 
     #Output files
-    master_agg_by_neigh = master_agg_by_neighborhood(agg_df_by_geoid, output_file1)
+    master_agg_by_neigh = master_agg_by_neighborhood(
+        agg_df_by_geoid, output_file1)
     agg_CHA_non_CHA = agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file2)
-    homes_by_poverty = num_homes_in_mobility_neigh(master_agg_by_neigh, output_file3)
-    map_of_cha_properties = generate_map(locator_database, blocks_zillow_merge, map_filename)
+    homes_by_poverty = num_homes_in_mobility_neigh(
+        master_agg_by_neigh, output_file3)
+    map_of_cha_properties = generate_map(
+        locator_database, blocks_zillow_merge, map_filename)
 
 
 def read_locator_db(filepath):
@@ -113,14 +119,14 @@ def read_locator_db(filepath):
 
 def read_block_group_data(block_groups_csv):
     '''
-    Reads in the eviction database (for all Census block groups in Illinois) using the 
-    specified filepath and returns a pandas dataframe for the year 2016.
+    Reads in the eviction database (for all Census block groups in Illinois) 
+    using the specified filepath and returns a pandas dataframe for 2016.
 
     Inputs:
         -block_groups_csv: filepath of eviction database
 
     Returns:
-        - evictions_2016: pandas dataframe of evictions for all blockgroups in 2016
+        -evictions_2016: pandas df of evictions for IL blockgroups in 2016
 
     '''
     col_types = {
@@ -184,9 +190,12 @@ def aggregate_cha_by_geoid(locator_database):
     Returns:
         -ld_by_geoid: pandas dataframe of locator database aggregated by geoid
     '''
-    locator_database['stop_wi_quart_mi'] = np.where(locator_database['num_stops_quart_mi'] > 0, 1, 0)
-    locator_database['stop_wi_half_mi'] = np.where(locator_database['num_stops_half_mi'] > 0, 1, 0)
-    locator_database['pot_bad_landlord'] = np.where(locator_database['potential_bad_landlord'] == True, 1, 0)
+    locator_database['stop_wi_quart_mi'] = np.where(
+        locator_database['num_stops_quart_mi'] > 0, 1, 0)
+    locator_database['stop_wi_half_mi'] = np.where(
+        locator_database['num_stops_half_mi'] > 0, 1, 0)
+    locator_database['pot_bad_landlord'] = np.where(
+        locator_database['potential_bad_landlord'] == True, 1, 0)
 
     group_geoids = locator_database.groupby(["GEOID"]) 
     ld_by_geoid = \
@@ -216,19 +225,21 @@ def create_city_blocks(city_blocks_json, zillow_shapefile):
     to zillow neighborhoods for the city of Chicago. 
 
     Inputs:
-        -city_blocks_json: geojson of Census block groups clipped for city of Chicago
+        -city_blocks_json: geojson of Census block groups clipped for Chicago
 
     Returns:
-        -blocks_zillow_merge: geopandas dataframe of Census block groups mapped to zillow
-         neighborhood
+        -blocks_zillow_merge: geopandas df of Census block groups mapped to 
+         zillow neighborhood
     '''
     city_blocks_df = geopandas.read_file(city_blocks_json)
-    city_blocks_df['GEOID'] = city_blocks_df['geoid10'].str.slice(start=0, stop=12)
+    city_blocks_df['GEOID'] = \
+    city_blocks_df['geoid10'].str.slice(start=0, stop=12)
     # set coordinate reference systems
     zillow_neighborhoods = geopandas.read_file(zillow_shapefile)
     city_blocks_df.crs = {'init' :'epsg:4326'}
     zillow_neighborhoods.crs = {'init' :'epsg:4326'}
-    block_zillow_merge = geopandas.sjoin(city_blocks_df, zillow_neighborhoods, how="left", op="intersects")
+    block_zillow_merge = geopandas.sjoin(
+        city_blocks_df, zillow_neighborhoods, how="left", op="intersects")
 
     return block_zillow_merge
 
@@ -251,7 +262,8 @@ def make_master_agg_dataset(blocks_zillow_merge, block_group_df, ld_by_geoid):
     df_to_merge = df_to_merge.drop_duplicates('GEOID', keep="first")
     evictions_full = pd.merge(df_to_merge, block_group_df, how="left", on="GEOID")
     evictions_full = evictions_full.rename(columns={'Name': 'Neighborhood'})
-    agg_df_by_geoid = evictions_full.merge(ld_by_geoid, how="left", on="GEOID", indicator=True)
+    agg_df_by_geoid = evictions_full.merge(
+        ld_by_geoid, how="left", on="GEOID", indicator=True)
 
     return agg_df_by_geoid
 
@@ -272,35 +284,35 @@ def master_agg_by_neighborhood(agg_df_by_geoid, output_file):
 
     #neighborhood level calculations
     #cha related stats
-    agg['percent_wi_quart_mi_l_stop'] =agg['stop_wi_quart_mi']/agg['num_cha_properties']
-    agg['percent_wi_half_mi_l_stop'] = agg['stop_wi_half_mi']/agg['num_cha_properties']
-    agg['Avg_cha_monthly_rent'] = agg['total_rent']/agg['num_cha_properties']
-    agg['perc_rentals_hcv'] = agg['num_cha_properties']/agg['renter-occupied-households']
-    agg['perc_hcv_in_neigh'] = agg['num_cha_properties']/agg['num_cha_properties'].sum()
+    agg['percent_wi_quart_mi_l_stop'] = agg['stop_wi_quart_mi'] / agg['num_cha_properties']
+    agg['percent_wi_half_mi_l_stop'] = agg['stop_wi_half_mi'] / agg['num_cha_properties']
+    agg['Avg_cha_monthly_rent'] = agg['total_rent'] / agg['num_cha_properties']
+    agg['perc_rentals_hcv'] = agg['num_cha_properties'] / agg['renter-occupied-households']
+    agg['perc_hcv_in_neigh'] = agg['num_cha_properties'] / agg['num_cha_properties'].sum()
     agg['at_least_10_homes'] = np.where(agg['num_cha_properties'] >= 10, 1, 0)
 
     #eviction and poverty rates
-    agg['eviction_rate'] = (agg['evictions']/agg['renter-occupied-households'])
-    agg['eviction_filing_rate'] = (agg['eviction-filings']/agg['renter-occupied-households'])   
-    agg['poverty_rate'] = agg['people_in_poverty']/agg['population']
-    agg['evictions_chi_percentile_rank']=(agg['eviction_rate'].rank(pct=True))
+    agg['eviction_rate'] = (agg['evictions'] / agg['renter-occupied-households'])
+    agg['eviction_filing_rate'] = (agg['eviction-filings'] / agg['renter-occupied-households'])   
+    agg['poverty_rate'] = agg['people_in_poverty'] / agg['population']
+    agg['evictions_chi_percentile_rank'] = (agg['eviction_rate'].rank(pct=True))
     
     #demographic rates
-    agg['perc_black'] = agg['af-am_pop']/agg['population']
-    agg['perc_latino'] = agg['hispanic_pop']/agg['population']
-    agg['perc_white'] = agg['white_pop']/agg['population']
+    agg['perc_black'] = agg['af-am_pop'] / agg['population']
+    agg['perc_latino'] = agg['hispanic_pop'] / agg['population']
+    agg['perc_white'] = agg['white_pop'] / agg['population'] 
     agg = agg.sort_values(by='num_cha_properties', ascending=False)
     
-    master_agg_by_neighborhood = agg[['num_cha_properties', 'Avg_cha_monthly_rent', 
-               'stop_wi_quart_mi',  'stop_wi_half_mi', 
-               'percent_wi_quart_mi_l_stop', 'percent_wi_half_mi_l_stop', 
-               "num_props_w_potential_bad_landlord",
-               'poverty_rate',
-               'eviction-filings', 'evictions',
-               'eviction_filing_rate', 'eviction_rate', 'evictions_chi_percentile_rank',
-               'renter-occupied-households', 'perc_rentals_hcv',
-               'population',  'perc_hcv_in_neigh', 'at_least_10_homes', 
-               'perc_black','perc_latino', 'perc_white' ]]
+    master_agg_by_neighborhood = \
+    agg[['num_cha_properties', 'Avg_cha_monthly_rent', 
+         'stop_wi_quart_mi',  'stop_wi_half_mi', 
+         'percent_wi_quart_mi_l_stop', 'percent_wi_half_mi_l_stop', 
+         'num_props_w_potential_bad_landlord','poverty_rate',
+         'eviction-filings', 'evictions',
+         'eviction_filing_rate', 'eviction_rate', 
+         'evictions_chi_percentile_rank','renter-occupied-households', 
+         'perc_rentals_hcv','population',  'perc_hcv_in_neigh', 
+         'at_least_10_homes', 'perc_black','perc_latino', 'perc_white']]
 
     master_agg_by_neighborhood.to_csv(output_file)
 
@@ -309,9 +321,10 @@ def master_agg_by_neighborhood(agg_df_by_geoid, output_file):
 
 def agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file):
     '''
-    Creates second aggregation table comparing neighborhoods with at least 10 homes 
-    available in them to homes with less than 10. 96% of the HCV homes in the list are 
-    in neighborhoods with at least 10 homes available.
+    Creates second aggregation table comparing neighborhoods with at 
+    least 10 homes available in them to homes with less than 10. 
+    96% of the HCV homes in the list are in neighborhoods with at least 10 homes 
+    available.
 
     https://interactive.wbez.org/curiouscity/segregation-map/ 
 
@@ -320,11 +333,12 @@ def agg_CHA_non_CHA_compare(master_agg_by_neigh, output_file):
         comprises two-thirds or more of an area’s population.
 
     Inputs:
-        -master_agg_by_neigh (pandas dataframe): master aggregated table of evictions data and 
-         locator database for city of Chicago, aggregated by zillow neighborhood
+        -master_agg_by_neigh (pandas dataframe): master aggregated table of 
+         evictions data and locator database for Chicago, aggregated by 
+         zillow neighborhood
         -output_file: (str) output csv path for CHA vs non-CHA aggregated table
     Returns:
-        -neigh_summary (pandas df): summary table of characteristics by zillow neighborhood
+        -neigh_summary (pandas df): summary table by zillow neighborhood
     '''
     master_agg_by_neigh['less_20_perc_pov'] = np.where(master_agg_by_neigh['poverty_rate'] < .2, 
                                                         1, 0)
@@ -390,8 +404,9 @@ def generate_map(locator_database, blocks_zillow_merge, map_filename):
     count_series = locator_database.groupby('GEOID').size()
     new_df = pd.DataFrame()
     new_df['GEOID'] = count_series.index
-    city_blocks = blocks_zillow_merge[['statefp10', 'name10', 'blockce10', 'tract_bloc', \
-                                       'geoid10', 'tractce10', 'countyfp10', 'geometry', 'GEOID']]
+    city_blocks = blocks_zillow_merge[['statefp10', 'name10', 'blockce10', 
+                                       'tract_bloc', 'geoid10', 'tractce10', 
+                                       'countyfp10', 'geometry', 'GEOID']]
     new_df['count_properties'] = count_series.values
     merged = pd.merge(city_blocks, new_df, how="left")
     merged = merged.fillna(0)
@@ -402,10 +417,12 @@ def generate_map(locator_database, blocks_zillow_merge, map_filename):
     fig, ax = plt.subplots(1, figsize=(8, 6))
     merged.plot(column=variable, cmap='Blues', scheme='Quantiles', ax=ax, alpha=1)
     ax.axis('off')
-    sm = plt.cm.ScalarMappable(cmap= 'Blues', norm=plt.Normalize(vmin=vmin, vmax=vmax))
+    sm = plt.cm.ScalarMappable(
+        cmap='Blues', norm=plt.Normalize(vmin=vmin, vmax=vmax))
     sm._A = []
     cbar = fig.colorbar(sm)
-    ax.set_title('Number of CHA properties by Census Block Group', fontdict={'fontsize': '15', 'fontweight' : '3'})
+    ax.set_title('Number of CHA properties by Census Block Group', 
+                 fontdict={'fontsize': '15', 'fontweight' : '3'})
     fig.savefig(map_filename, dpi=300)
 
 
