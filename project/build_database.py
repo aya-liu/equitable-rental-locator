@@ -7,7 +7,10 @@ Create an affordable rental unit database from the following data sources:
 - CTA L-stops
 - Problem Landlords
 
+Aya Liu, Bhargavi Ganesh, and Vedika Ahuja
+
 '''
+import sys
 import pandas as pd
 from process_cha_data import process_cha_data
 import rent_and_eviction as rev
@@ -23,17 +26,13 @@ BAD_LL_DATA = "data/problem_landlords.csv"
 BLOCKS_GEOFILE = "data/block-groups.geojson"
 ZILLOW_GEOFILE = "data/ZillowNeighborhoods-IL.shp"
 
-# output data filepaths
-ZILLOW_WITH_INC = "processed_data/zillow_rindex_with_increase.csv"
-DATABASE = "processed_data/locator_database.csv"
-
 # default threshold for landlord location fuzzy match
 DEF_TS = 0.015
 
 
 def build_database(cha_data, evictions_data, zillow_data, lstops_data,
-            bad_landlords_data, blocks_geofile, zillow_geofile, 
-            zillow_with_inc_output, database_output, threshold=DEF_TS):
+                   bad_landlords_data, blocks_geofile, zillow_geofile,
+                   zillow_with_inc_output, database_output, threshold=DEF_TS):
     '''
     Merge all data sources and write the merged dataset to a csv file
 
@@ -48,7 +47,7 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
             - zillow_geofile: filename of the Zillow Regions shp file
 
         Filepaths to output csv files:
-            - zillow_with_inc_output: output filename for zillow data with 
+            - zillow_with_inc_output: output filename for zillow data with
                                         computed rent increase rate
             - database_output: output filename for database created
 
@@ -63,13 +62,13 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
     # process data of housing units, eviction rates, and rent index
     cha = process_cha_data(cha_data, blocks_geofile, zillow_geofile)
     evict = rev.read_and_process_evictions(evictions_data)
-    rindex = rev.read_and_process_rindex(zillow_data, 
-                                            zillow_with_inc_output)
+    rindex = rev.read_and_process_rindex(zillow_data,
+                                         zillow_with_inc_output)
 
     print("Flagging problem landlords...")
     # flag units with potential bad landlords
-    cha_to_landlords = trl.flag_potential_bad_landlord(cha,
-                            bad_landlords_data, threshold)
+    cha_to_landlords = trl.flag_potential_bad_landlord(
+        cha, bad_landlords_data, threshold)
 
     print("Computing transit access...")
     # compute transit access for each unit
@@ -91,50 +90,82 @@ def build_database(cha_data, evictions_data, zillow_data, lstops_data,
     format_db(merged)
     merged.to_csv(database_output)
 
-    print("--Finished--")
-    return merged        
+    print("Finished building database.")
+    return merged
 
 
 def merge_with_evict(cha, evict):
+    '''
+    Merge CHA rental unit data with eviction data.
+
+    Inputs:
+        cha: (DataFrame) CHA rental unit dataframe
+        evict: (DataFrame) Eviction Lab dataframe
+
+    '''
     evict_to_merge = evict[evict.year == '2016']
-    evict_to_merge = evict_to_merge[['GEOID', 'parent-location', 'population',
-            'renter-occupied-households', 'median-gross-rent',
-            'median-household-income', 'median-property-value', 'pct-white', 
-            'pct-af-am', 'pct-hispanic', 'pct-am-ind', 'pct-asian', 
-            'eviction-filings', 'evictions', 'eviction-rate', 
-            'eviction-filing-rate']]
-    merged_with_ev = pd.merge(cha.reset_index(), evict_to_merge, on="GEOID", 
-                            how="left")
+    evict_to_merge = evict_to_merge[[
+        'GEOID', 'parent-location', 'population',
+        'renter-occupied-households', 'median-gross-rent',
+        'median-household-income', 'median-property-value', 'pct-white',
+        'pct-af-am', 'pct-hispanic', 'pct-am-ind', 'pct-asian',
+        'eviction-filings', 'evictions', 'eviction-rate',
+        'eviction-filing-rate']]
+    merged_with_ev = pd.merge(cha.reset_index(), evict_to_merge, on="GEOID",
+                              how="left")
     return merged_with_ev
 
 
 def merge_with_rindex(cha, rindex):
-    rindex_to_merge = rindex[["RegionID","2011-2015", "2015-2019"]]
-    merged_with_rindex = pd.merge(cha, rindex_to_merge, on="RegionID", 
-                            how="left")
+    '''
+    Merge CHA rental unit data with Zillow rent index data.
+
+    Inputs:
+        cha: (DataFrame) CHA rental unit dataframe
+        rindex: (DataFrame) Zillow rent index dataframe
+
+    '''
+    rindex_to_merge = rindex[["RegionID", "2011-2015", "2015-2019"]]
+    merged_with_rindex = pd.merge(cha, rindex_to_merge, on="RegionID",
+                                  how="left")
     return merged_with_rindex
 
 
 def merge_on_index(df, df_to_merge):
+    '''
+    Merge CHA rental unit data with another dataframe on listing index.
+
+    Inputs:
+        df: (DataFrame) CHA rental unit dataframe
+        df_to_merge: (DataFrame) another dataframe
+
+    '''
     df_to_merge.rename(columns={"ind_apt": "index"}, inplace=True)
     merged = pd.merge(df, df_to_merge, on="index", how="left")
     return merged
 
 
 def format_db(df):
+    '''
+    Format the merged housing unit locator database
+
+    Input:
+        df (Dataframe): the merged dataset
+
+    '''
     df.set_index("index", inplace=True)
     new_names = {
-    "Name": "Neighborhood",
-    "eviction-rate": "2016_evict_rate",
-    "eviction-filing-rate": "2016_evict_filing_rate",
-    "2011-2015": "2011-2015_rent_perc_change",
-    "2015-2019": "2015-2019_rent_perc_change",
-    "Address_ll": "bad_landlord_address",
-    "wi_quart_mi": "num_stops_quart_mi",
-    "wi_half_mi": "num_stops_half_mi",
-    "wi_3_quart": "num_stops_3quart_mi",
-    "wi_1_mi": "num_stops_1_mi",    
-              }
+        "Name": "Neighborhood",
+        "eviction-rate": "2016_evict_rate",
+        "eviction-filing-rate": "2016_evict_filing_rate",
+        "2011-2015": "2011-2015_rent_perc_change",
+        "2015-2019": "2015-2019_rent_perc_change",
+        "Address_ll": "bad_landlord_address",
+        "wi_quart_mi": "num_stops_quart_mi",
+        "wi_half_mi": "num_stops_half_mi",
+        "wi_3_quart": "num_stops_3quart_mi",
+        "wi_1_mi": "num_stops_1_mi"
+        }
     df.rename(columns=new_names, inplace=True)
 
 
@@ -143,16 +174,20 @@ def main():
     Build, format, and stores database as csv.
     Returns nothing.
     '''
-    db = build_database(
-        CHA_DATA, 
-        EVICTIONS_DATA, 
-        ZILLOW_DATA, 
+    output_dir = sys.argv[1]
+    zillow_with_inc_output = output_dir +"/zillow_rindex_with_increase.csv"
+    database_output = output_dir +"/locator_database.csv"
+
+    build_database(
+        CHA_DATA,
+        EVICTIONS_DATA,
+        ZILLOW_DATA,
         L_STOPS_DATA,
-        BAD_LL_DATA, 
-        BLOCKS_GEOFILE, 
-        ZILLOW_GEOFILE, 
-        ZILLOW_WITH_INC,
-        DATABASE
+        BAD_LL_DATA,
+        BLOCKS_GEOFILE,
+        ZILLOW_GEOFILE,
+        zillow_with_inc_output,
+        database_output
         )
 
 
