@@ -205,7 +205,7 @@ def aggregate_cha_by_geoid(locator_database):
     locator_database['stop_wi_half_mi'] = np.where(
         locator_database['num_stops_half_mi'] > 0, 1, 0)
     locator_database['pot_bad_landlord'] = np.where(
-        locator_database['potential_bad_landlord'] == True, 1, 0)
+        locator_database['potential_bad_landlord'] is True, 1, 0)
 
     group_geoids = locator_database.groupby(["GEOID"]) 
     ld_by_geoid = \
@@ -375,7 +375,7 @@ def agg_cha_non_cha_compare(master_agg_by_neigh, output_file):
     integrated_mask = (master_agg_by_neigh['maj_black'] == 0) & \
                       (master_agg_by_neigh['maj_white'] == 0) & \
                       (master_agg_by_neigh['maj_latino'] == 0)                  
-    master_agg_by_neigh['integrated'] = np.where(integrated_mask == True, 1, 0)
+    master_agg_by_neigh['integrated'] = np.where(integrated_mask is True, 1, 0)
     grouped = master_agg_by_neigh.groupby('at_least_10_homes')
     agg = grouped.agg({'num_cha_properties' : 'count',
                        'eviction_rate' : 'mean',
