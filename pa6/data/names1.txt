@@ -1,6 +1,0 @@
-1	Liam	Emma
-2	Noah	Olivia
-3	William	Ava
-4	James	Isabella
-5	Logan	Sophia
-6	Benjamin Mia

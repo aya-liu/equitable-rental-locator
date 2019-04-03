@@ -1,9 +1,0 @@
-ui/tests.json
-__pycache__/*
-ui/__pycache__/*
-ui/.pytest_cache/*
-.pytest_cache/*
-ui/course_information.sqlite3
-ui/pa5-files.tgz
-
-
