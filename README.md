@@ -4,9 +4,8 @@
 
 Chicago Housing Authority’s (CHA’s) Housing Choice Voucher (HCV) Program allows low-income families to rent quality housing in the private market with assistance from federal funds. Our project is meant to assist families in the HCV program find homes suitable to their needs by drawing together information from various publicly available data sources. A user can also use our program to generate aggregate reports and a map that provide information about the neighborhoods offering HCV housing.
 
-Getting Started
-----
-### Required Libraries
+Required Libraries
+---
 
 The program requires Python 3 to run. The following libraries need to be installed:
 * pandas                    (0.23.4)
@@ -21,16 +20,19 @@ To run the scraper, additional packages are required:
 * requests              (2.21.0) 
 * beautifulsoup4        (4.6.3)
 
-### Build the Database
+Build the Database
+---
 
 Run the following command:
 ```sh
 $ python3 build_database.py <output directory name>
 ```
 
-### Use the Database 
+Use the Database 
+---
+
 There are two separate tools for users to 1) search rental unit listings the database as a renter or to 2) get aggregated statistics as a researcher.
-##### For Renters: `user` Library
+### For Renters: `user` Library
 **Step 1: Creating and updating your search criteria**
 
 * `user.Criteria()`: Initialize search criteria
@@ -70,7 +72,7 @@ user.search(c, output_filepath)
 user.clear_criteria() 
 ```
 
-#### For Researchers: Run `generate_report` 
+### For Researchers: Run `generate_report` 
 Run the following command:
 ```python
 python3 generate_report.py <output filename1> <output filename2> <output filename3> <map_filename>
@@ -83,7 +85,8 @@ This program aggregates information about the available HCV houses and the chara
 * *map filename (png)*: Map showing CHA properties by census block group
 
 
-### (Optional) Collect HCV Rental Listings
+(Optional) Collect HCV Rental Listings
+---
 Run the following command to collect  listings from the [Chicago Housing Authority HCV Housing Finder](http://chicagoha.gosection8.com/Tenant/tn_Results.aspx):
 ```sh
 $ python3 cha_scraper.py <output filename>
