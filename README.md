@@ -103,9 +103,9 @@ Aya Liu, Bhargavi Ganesh, and Vedika Ahuja
 
 Data Sources
 ------------
-[HCV Housing Finder, Chicago Housing Authority](http://chicagoha.gosection8.com/Tenant/tn_Results.aspx)
-[Eviction Lab at Princeton University](https://data-downloads.evictionlab.org/)
-[Zillow Rent Index (ZRI), Zillow Research](https://www.zillow.com/research/data/)
-[List of 'L' Stops, CTA](https://data.cityofchicago.org/Transportation/CTA-System-Information-List-of-L-Stops/8pix-ypme)
-[Problem Building Landlords, City of Chicago](https://www.chicago.gov/city/en/depts/bldgs/supp_info/building-code-scofflaw-list.html)
+[HCV Housing Finder, Chicago Housing Authority](http://chicagoha.gosection8.com/Tenant/tn_Results.aspx)  
+[Eviction Lab at Princeton University](https://data-downloads.evictionlab.org/)  
+[Zillow Rent Index (ZRI), Zillow Research](https://www.zillow.com/research/data/)  
+[List of 'L' Stops, CTA](https://data.cityofchicago.org/Transportation/CTA-System-Information-List-of-L-Stops/8pix-ypme)  
+[Problem Building Landlords, City of Chicago](https://www.chicago.gov/city/en/depts/bldgs/supp_info/building-code-scofflaw-list.html)  
 
